@@ -32,6 +32,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading;
@@ -103,6 +104,9 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
         private volatile bool _deleteFile;
 
         private IChunkReadSide _readSide;
+
+        private readonly bool _useMMap = Application.IsDefined("USE_MMAP");
+        private MemoryMappedFile _mmapFile;
 
         private TFChunk(string filename, int initialReaderCount, int maxReaderCount, int midpointsDepth)
         {
@@ -182,6 +186,8 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
 
             _isReadOnly = true;
             SetAttributes();
+            if (_useMMap)
+                _mmapFile = CreateMMapFile(new FileStream(_filename, FileMode.Open, FileAccess.Read, FileShare.Read, ReadBufferSize, FileOptions.RandomAccess));
             CreateReaderStreams();
 
             var reader = GetReaderWorkItem();
@@ -276,16 +282,27 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
             Interlocked.Add(ref _fileStreamCount, _internalStreamsCount);
             for (int i = 0; i < _internalStreamsCount; i++)
             {
-                _fileStreams.Enqueue(CreateInternalReaderWorkItem());
+                _fileStreams.Enqueue(CreateFileReaderWorkItem());
             }
         }
 
-        private ReaderWorkItem CreateInternalReaderWorkItem()
+        private ReaderWorkItem CreateFileReaderWorkItem()
         {
-            var stream = new FileStream(_filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
-                                        ReadBufferSize, FileOptions.RandomAccess);
-            var reader = new BinaryReader(stream);
-            return new ReaderWorkItem(stream, reader, false);
+            if (_mmapFile == null)
+            {
+                Log.Info("CREATING FILE WORKER IN {0}!!!", FileName);
+                var stream = new FileStream(_filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
+                                            ReadBufferSize, FileOptions.RandomAccess);
+                var reader = new BinaryReader(stream);
+                return new ReaderWorkItem(stream, reader, WorkItemType.File);
+            }
+            else
+            {
+                Log.Info("CREATING MEMMAPPED WORKER IN {0}!!!", FileName);
+                var stream = _mmapFile.CreateViewStream(0, FileSize, MemoryMappedFileAccess.Read);
+                var reader = new BinaryReader(stream);
+                return new ReaderWorkItem(stream, reader, WorkItemType.MMap);
+            }
         }
 
         private void CreateWriterWorkItemForNewChunk(ChunkHeader chunkHeader, int fileSize)
@@ -437,42 +454,74 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
         // WARNING CacheInMemory/UncacheFromMemory should not be called simultaneously !!!
         public void CacheInMemory()
         {
-            if (Interlocked.CompareExchange(ref _isCached, 1, 0) == 0)
+            Log.Info("CACHE IN MEMORY IN {0}!!!", FileName);
+            if (_mmapFile != null)
+                return;
+
+            if (Interlocked.CompareExchange(ref _isCached, 1, 0) != 0)
+                return;
+
+            // we won the right to cache
+            var sw = Stopwatch.StartNew();
+            try
             {
-                // we won the right to cache
-                var sw = Stopwatch.StartNew();
+                BuildCacheArray();
+            }
+            catch (OutOfMemoryException)
+            {
+                Log.Error("CACHING FAILED due to OutOfMemory exception in TFChunk #{0}-{1} at {2}.",
+                          _chunkHeader.ChunkStartNumber, _chunkHeader.ChunkEndNumber, Path.GetFileName(_filename));
+                _isCached = 0;
+                return;
+            }
+            catch (FileBeingDeletedException)
+            {
+                Log.Debug("CACHING FAILED due to FileBeingDeleted exception (TFChunk is being disposed) in TFChunk #{0}-{1} at {2}.",
+                          _chunkHeader.ChunkStartNumber, _chunkHeader.ChunkEndNumber, Path.GetFileName(_filename));
+                _isCached = 0;
+                return;
+            }
 
-                try
-                {
-                    BuildCacheArray();
-                }
-                catch (OutOfMemoryException)
-                {
-                    Log.Error("CACHING FAILED due to OutOfMemory exception in TFChunk #{0}-{1} at {2}.",
-                              _chunkHeader.ChunkStartNumber, _chunkHeader.ChunkEndNumber, Path.GetFileName(_filename));
-                    _isCached = 0;
-                    return;
-                }
-                catch (FileBeingDeletedException)
-                {
-                    Log.Debug("CACHING FAILED due to FileBeingDeleted exception (TFChunk is being disposed) in TFChunk #{0}-{1} at {2}.",
-                              _chunkHeader.ChunkStartNumber, _chunkHeader.ChunkEndNumber, Path.GetFileName(_filename));
-                    _isCached = 0;
-                    return;
-                }
+            Interlocked.Add(ref _memStreamCount, _maxReaderCount);
+            if (_selfdestructin54321)
+            {
+                if (Interlocked.Add(ref _memStreamCount, -_maxReaderCount) == 0)
+                    FreeCachedData();
+                Log.Trace("CACHING ABORTED for TFChunk #{0}-{1} ({2}) as TFChunk was probably marked for deletion.",
+                          _chunkHeader.ChunkStartNumber, _chunkHeader.ChunkEndNumber, Path.GetFileName(_filename));
+                return;
+            }
 
-                BuildCacheReaders();
-                _readSide.Uncache();
+            var writerWorkItem = _writerWorkItem;
+            if (writerWorkItem != null)
+            {
+                writerWorkItem.UnmanagedMemoryStream =
+                        new UnmanagedMemoryStream((byte*)_cachedData, _cachedLength, _cachedLength, FileAccess.ReadWrite);
+            }
 
-                var writerWorkItem = _writerWorkItem;
-                if (writerWorkItem != null)
+            for (int i = 0; i < _maxReaderCount; i++)
+            {
+                Log.Info("CREATING MEMORY WORKER IN {0}!!!", FileName);
+                var stream = new UnmanagedMemoryStream((byte*)_cachedData, _cachedLength);
+                var reader = new BinaryReader(stream);
+                _memStreams.Enqueue(new ReaderWorkItem(stream, reader, WorkItemType.Memory));
+            }
+
+            _readSide.Uncache();
+
+            Log.Trace("CACHED TFChunk #{0}-{1} ({2}) in {3}.",
+                      _chunkHeader.ChunkStartNumber, _chunkHeader.ChunkEndNumber, Path.GetFileName(_filename), sw.Elapsed);
+
+            if (_selfdestructin54321)
+            {
+                TryDestructMemStreams();
+
+                var unmanagedStream = writerWorkItem == null ? null : writerWorkItem.UnmanagedMemoryStream;
+                if (unmanagedStream != null)
                 {
-                    writerWorkItem.UnmanagedMemoryStream =
-                        new UnmanagedMemoryStream((byte*) _cachedData, _cachedLength, _cachedLength, FileAccess.ReadWrite);
+                    unmanagedStream.Dispose();
+                    writerWorkItem.UnmanagedMemoryStream = null;
                 }
-
-                Log.Trace("CACHED TFChunk #{0}-{1} ({2}) in {3}.", 
-                          _chunkHeader.ChunkStartNumber, _chunkHeader.ChunkEndNumber, Path.GetFileName(_filename), sw.Elapsed);
             }
         }
 
@@ -481,7 +530,7 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
             var workItem = GetReaderWorkItem();
             try
             {
-                if (workItem.IsMemory)
+                if (workItem.WorkItemType == WorkItemType.Memory)
                     throw new InvalidOperationException("When trying to build cache, reader worker is already in-memory reader.");
 
                 var dataSize = _isReadOnly ? _physicalDataSize + ChunkFooter.MapSize : _chunkHeader.ChunkSize;
@@ -518,19 +567,8 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
             }
         }
 
-        private void BuildCacheReaders()
-        {
-            Interlocked.Add(ref _memStreamCount, _maxReaderCount);
-            for (int i = 0; i < _maxReaderCount; i++)
-            {
-                var stream = new UnmanagedMemoryStream((byte*)_cachedData, _cachedLength);
-                var reader = new BinaryReader(stream);
-                _memStreams.Enqueue(new ReaderWorkItem(stream, reader, isMemory: true));
-            }
-        }
-
         //WARNING CacheInMemory/UncacheFromMemory should not be called simultaneously !!!
-        public void UnCacheFromMemory()
+        public void UnCacheFromMemory(bool cacheMidpoints = true)
         {
             if (Interlocked.CompareExchange(ref _isCached, 0, 1) == 1)
             {
@@ -538,7 +576,8 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
                 // NOTE: calling simultaneously cache and uncache is very dangerous
                 // NOTE: though multiple simultaneous calls to either Cache or Uncache is ok
 
-                _readSide.Cache();
+                if (cacheMidpoints)
+                    _readSide.Cache();
 
                 var writerWorkItem = _writerWorkItem;
                 var unmanagedMemStream = writerWorkItem == null ? null : writerWorkItem.UnmanagedMemoryStream;
@@ -681,6 +720,13 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
 
             _chunkFooter = WriteFooter(mapping);
             Flush();
+
+            if (_useMMap)
+            {
+                _mmapFile = CreateMMapFile(_writerWorkItem.Stream);
+                UnCacheFromMemory(cacheMidpoints: false);
+            }
+
             _isReadOnly = true;
 
             CleanUpWriterWorkItem(_writerWorkItem);
@@ -696,11 +742,29 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
                 throw new InvalidOperationException("The raw chunk is not completely written.");
             Flush();
             _chunkFooter = ReadFooter(_writerWorkItem.Stream);
+
+            if (_useMMap)
+            {
+                _mmapFile = CreateMMapFile(_writerWorkItem.Stream);
+                UnCacheFromMemory(cacheMidpoints: false);
+            }
+
             _isReadOnly = true;
 
             CleanUpWriterWorkItem(_writerWorkItem);
             _writerWorkItem = null;
             SetAttributes();
+        }
+
+        private MemoryMappedFile CreateMMapFile(FileStream fileStream)
+        {
+            return MemoryMappedFile.CreateFromFile(fileStream,
+                                                   Guid.NewGuid().ToString(),
+                                                   fileStream.Length,
+                                                   MemoryMappedFileAccess.Read,
+                                                   new MemoryMappedFileSecurity(),
+                                                   HandleInheritability.None,
+                                                   false);
         }
 
         private ChunkFooter WriteFooter(ICollection<PosMap> mapping)
@@ -747,7 +811,7 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
             if (writerWorkItem == null)
                 return;
 
-            if (writerWorkItem.Stream != null)
+            if (_mmapFile == null)
                 writerWorkItem.Stream.Dispose();
 
             var unmanagedStream = writerWorkItem.UnmanagedMemoryStream;
@@ -793,7 +857,11 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
         private void CleanUpFileStreamDestruction()
         {
             CleanUpWriterWorkItem(_writerWorkItem);
-
+            if (_mmapFile != null)
+            {
+                _mmapFile.Dispose();
+                _mmapFile = null;
+            }
             Helper.EatException(() => File.SetAttributes(_filename, FileAttributes.Normal));
 
             if (_deleteFile)
@@ -862,22 +930,39 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
 
             // if we get here, then we reserved TFChunk for sure so no one should dispose of chunk file
             // until client returns the reader
-            return CreateInternalReaderWorkItem();
+            return CreateFileReaderWorkItem();
         }
 
         private void ReturnReaderWorkItem(ReaderWorkItem item)
         {
-            if (item.IsMemory)
+            switch (item.WorkItemType)
             {
-                _memStreams.Enqueue(item);
-                if (_isCached == 0 || _selfdestructin54321)
-                    TryDestructMemStreams();
-            }
-            else
-            {
-                _fileStreams.Enqueue(item);
-                if (_selfdestructin54321)
-                    TryDestructFileStreams();
+                case WorkItemType.File:
+                {
+                    if (_mmapFile != null)
+                    {
+                        _fileStreams.Enqueue(CreateFileReaderWorkItem()); // switch for mmap-based worker
+                        item.Stream.Dispose();
+                    }
+                    else
+                        _fileStreams.Enqueue(item);
+                    if (_selfdestructin54321)
+                        TryDestructFileStreams();
+                    break;
+                }
+                case WorkItemType.Memory:
+                {
+                    if (_isCached == 0 || _selfdestructin54321)
+                        TryDestructMemStreams();
+                    break;
+                }
+                case WorkItemType.MMap:
+                    _fileStreams.Enqueue(item);
+                    if (_selfdestructin54321)
+                        TryDestructFileStreams();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 

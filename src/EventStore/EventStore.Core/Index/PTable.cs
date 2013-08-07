@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Threading;
 using EventStore.Common.Log;
 using EventStore.Common.Utils;
@@ -63,10 +64,13 @@ namespace EventStore.Core.Index
         private readonly string _filename;
         private readonly long _size;
         private readonly Midpoint[] _midpoints;
+        private readonly ulong _minEntry, _maxEntry;
         private readonly ObjectPool<WorkItem> _workItems;
 
         private readonly ManualResetEventSlim _destroyEvent = new ManualResetEventSlim(false);
         private volatile bool _deleteFile;
+
+        private readonly bool _useMMap = Application.IsDefined("USE_MMAP");
 
         private PTable(string filename, 
                        Guid id, 
@@ -91,12 +95,36 @@ namespace EventStore.Core.Index
             _size = new FileInfo(_filename).Length - PTableHeader.Size - MD5Size;
             File.SetAttributes(_filename, FileAttributes.ReadOnly | FileAttributes.NotContentIndexed);
 
-            _workItems = new ObjectPool<WorkItem>(string.Format("PTable {0} work items", _id),
-                                                  initialReaders,
-                                                  maxReaders,
-                                                  () => new WorkItem(filename, DefaultBufferSize),
-                                                  workItem => workItem.Dispose(),
-                                                  pool => OnAllWorkItemsDisposed());
+            if (_useMMap)
+            {
+                var fileStream = new FileStream(_filename, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize, FileOptions.RandomAccess);
+                var mmapFile = MemoryMappedFile.CreateFromFile(fileStream,
+                                                               Guid.NewGuid().ToString(),
+                                                               fileStream.Length,
+                                                               MemoryMappedFileAccess.Read,
+                                                               new MemoryMappedFileSecurity(),
+                                                               HandleInheritability.None,
+                                                               false);
+                _workItems = new ObjectPool<WorkItem>(string.Format("PTable {0} work items (mmap", _id),
+                                                      initialReaders,
+                                                      maxReaders,
+                                                      () => new WorkItem(mmapFile, fileStream.Length),
+                                                      workItem => workItem.Dispose(),
+                                                      pool =>
+                                                      {
+                                                          mmapFile.Dispose();
+                                                          OnAllWorkItemsDisposed();
+                                                      });
+            }
+            else
+            {
+                _workItems = new ObjectPool<WorkItem>(string.Format("PTable {0} work items", _id),
+                                                      initialReaders,
+                                                      maxReaders,
+                                                      () => new WorkItem(filename, DefaultBufferSize),
+                                                      workItem => workItem.Dispose(),
+                                                      pool => OnAllWorkItemsDisposed());
+            }
 
             var readerWorkItem = GetWorkItem();
             try
@@ -105,6 +133,17 @@ namespace EventStore.Core.Index
                 var header = PTableHeader.FromStream(readerWorkItem.Stream);
                 if (header.Version != Version)
                     throw new CorruptIndexException(new WrongFileVersionException(_filename, header.Version, Version));
+
+                if (Count == 0)
+                {
+                    _minEntry = ulong.MaxValue;
+                    _maxEntry = ulong.MinValue;
+                }
+                else
+                {
+                    _minEntry = ReadEntry(Count-1, readerWorkItem).Key;
+                    _maxEntry = ReadEntry(0, readerWorkItem).Key;
+                }
             }
             catch (Exception)
             {
@@ -116,14 +155,17 @@ namespace EventStore.Core.Index
                 ReturnWorkItem(readerWorkItem);
             }
 
-            try
+            if (!_useMMap)
             {
-                _midpoints = CacheMidpoints(depth);
-            }
-            catch (PossibleToHandleOutOfMemoryException)
-            {
-                Log.Error("Was unable to create midpoints for PTable '{0}' ({1} entries, depth {2} requested). "
-                          + "Performance hit possible. OOM Exception.", Filename, Count, depth);
+                try
+                {
+                    _midpoints = CacheMidpoints(depth);
+                }
+                catch (PossibleToHandleOutOfMemoryException)
+                {
+                    Log.Error("Was unable to create midpoints for PTable '{0}' ({1} entries, depth {2} requested). "
+                              + "Performance hit possible. OOM Exception.", Filename, Count, depth);
+                }
             }
             Log.Trace("Loading PTable '{0}' ({1} entries, cache depth {2}) done in {3}.", Filename, Count, depth, sw.Elapsed);
         }
@@ -168,7 +210,7 @@ namespace EventStore.Core.Index
         }
 
         private static readonly byte[] TmpBuf = new byte[DefaultBufferSize];
-        private static void ReadUntil(long nextPos, FileStream fileStream)
+        private static void ReadUntil(long nextPos, Stream fileStream)
         {
             long toRead = nextPos - fileStream.Position;
             if (toRead < 0)
@@ -266,7 +308,9 @@ namespace EventStore.Core.Index
             var startKey = BuildKey(stream, startNumber);
             var endKey = BuildKey(stream, endNumber);
 
-            if (_midpoints != null && (startKey > _midpoints[0].Key || endKey < _midpoints[_midpoints.Length - 1].Key))
+//            if (_midpoints != null && (startKey > _midpoints[0].Key || endKey < _midpoints[_midpoints.Length - 1].Key))
+//                return false;
+            if (startKey > _maxEntry || endKey < _minEntry)
                 return false;
 
             var workItem = GetWorkItem();
@@ -287,7 +331,8 @@ namespace EventStore.Core.Index
                 }
 
                 var candEntry = ReadEntry(high, workItem);
-                Debug.Assert(candEntry.Key <= endKey);
+                if (candEntry.Key > endKey)
+                    throw new Exception(string.Format("candEntry.Key {0} > startKey {1}, stream {2}, startNum {3}, endNum {4}, PTable: {5}.", candEntry.Key, startKey, stream, startNumber, endNumber, Filename));
                 if (candEntry.Key < startKey)
                     return false;
                 entry = candEntry;
@@ -308,7 +353,9 @@ namespace EventStore.Core.Index
             var startKey = BuildKey(stream, startNumber);
             var endKey = BuildKey(stream, endNumber);
 
-            if (_midpoints != null && (startKey > _midpoints[0].Key || endKey < _midpoints[_midpoints.Length - 1].Key))
+//            if (_midpoints != null && (startKey > _midpoints[0].Key || endKey < _midpoints[_midpoints.Length - 1].Key))
+//                return result;
+            if (startKey > _maxEntry || endKey < _minEntry)
                 return result;
 
             var workItem = GetWorkItem();
@@ -470,12 +517,18 @@ namespace EventStore.Core.Index
 
         private class WorkItem: IDisposable
         {
-            public readonly FileStream Stream;
+            public readonly Stream Stream;
             public readonly BinaryReader Reader;
 
             public WorkItem(string filename, int bufferSize)
             {
                 Stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.RandomAccess);
+                Reader = new BinaryReader(Stream);
+            }
+
+            public WorkItem(MemoryMappedFile mmapFile, long length)
+            {
+                Stream = mmapFile.CreateViewStream(0, length, MemoryMappedFileAccess.Read);
                 Reader = new BinaryReader(Stream);
             }
 

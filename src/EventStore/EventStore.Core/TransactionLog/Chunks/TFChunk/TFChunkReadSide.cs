@@ -253,7 +253,7 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
             private int TranslateExactPosition(ReaderWorkItem workItem, long pos)
             {
                 var midpoints = _midpoints;
-                if (workItem.IsMemory || midpoints == null)
+                if (workItem.WorkItemType == WorkItemType.Memory || midpoints == null)
                     return TranslateExactWithoutMidpoints(workItem, pos, 0, Chunk.ChunkFooter.MapCount - 1);
                 return TranslateExactWithMidpoints(workItem, midpoints, pos);
             }
@@ -354,7 +354,7 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
             private Tuple<int, int> TranslateClosestForwardPosition(ReaderWorkItem workItem, long logicalPosition)
             {
                 var midpoints = _midpoints;
-                if (workItem.IsMemory || midpoints == null)
+                if (workItem.WorkItemType == WorkItemType.Memory || midpoints == null)
                     return TranslateClosestForwardWithoutMidpoints(workItem, logicalPosition, 0, Chunk.ChunkFooter.MapCount - 1);
                 return TranslateClosestForwardWithMidpoints(workItem, midpoints, logicalPosition);
             }

@@ -30,17 +30,24 @@ using System.IO;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk
 {
+    internal enum WorkItemType
+    {
+        File,
+        Memory,
+        MMap
+    }
+
     internal class ReaderWorkItem
     {
         public readonly Stream Stream;
         public readonly BinaryReader Reader;
-        public readonly bool IsMemory;
+        public readonly WorkItemType WorkItemType;
 
-        public ReaderWorkItem(Stream stream, BinaryReader reader, bool isMemory)
+        public ReaderWorkItem(Stream stream, BinaryReader reader, WorkItemType workItemType)
         {
             Stream = stream;
             Reader = reader;
-            IsMemory = isMemory;
+            WorkItemType = workItemType;
         }
     }
 }

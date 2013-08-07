@@ -45,7 +45,7 @@ namespace EventStore.Core.Tests
         {
             Console.WriteLine("Initializing tests (setting console loggers)...");
             LogManager.SetLogFactory(x => new ConsoleLogger(x));
-            Application.AddDefines(new[] { Application.AdditionalCommitChecks });
+            Application.AddDefines(new[] { Application.AdditionalCommitChecks, "USE_MMAP" });
             LogEnvironmentInfo();
 
             if (!Debugger.IsAttached)

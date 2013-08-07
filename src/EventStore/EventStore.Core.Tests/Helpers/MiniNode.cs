@@ -203,14 +203,14 @@ namespace EventStore.Core.Tests.Helpers
             ICheckpoint chaserChk;
             ICheckpoint epochChk;
             ICheckpoint truncateChk;
-            if (Runtime.IsMono)
-            {
-                writerChk = new FileCheckpoint(writerCheckFilename, Checkpoint.Writer, cached: true);
-                chaserChk = new FileCheckpoint(chaserCheckFilename, Checkpoint.Chaser, cached: true);
-                epochChk = new FileCheckpoint(epochCheckFilename, Checkpoint.Epoch, cached: true, initValue: -1);
-                truncateChk = new FileCheckpoint(truncateCheckFilename, Checkpoint.Truncate, cached: true, initValue: -1);
-            }
-            else
+//            if (Runtime.IsMono)
+//            {
+//                writerChk = new FileCheckpoint(writerCheckFilename, Checkpoint.Writer, cached: true);
+//                chaserChk = new FileCheckpoint(chaserCheckFilename, Checkpoint.Chaser, cached: true);
+//                epochChk = new FileCheckpoint(epochCheckFilename, Checkpoint.Epoch, cached: true, initValue: -1);
+//                truncateChk = new FileCheckpoint(truncateCheckFilename, Checkpoint.Truncate, cached: true, initValue: -1);
+//            }
+//            else
             {
                 writerChk = new MemoryMappedFileCheckpoint(writerCheckFilename, Checkpoint.Writer, cached: true);
                 chaserChk = new MemoryMappedFileCheckpoint(chaserCheckFilename, Checkpoint.Chaser, cached: true);
