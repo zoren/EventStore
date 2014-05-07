@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.partition_state_update_manager
@@ -46,7 +47,7 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state_update_mana
             var eventWriter = new FakeEventWriter();
             _updateManager.EmitEvents(eventWriter);
             EmittedEvent @event = eventWriter.Writes[0][0];
-            Assert.AreEqual("[{\"state\":1}]", @event.Data);
+            Assert.AreEqual("[{\"state\":1}]", @event.Data.FromUtf8());
         }
 
         [Test]

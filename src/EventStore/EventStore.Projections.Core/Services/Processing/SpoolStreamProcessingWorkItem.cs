@@ -3,6 +3,7 @@ using EventStore.Core.Bus;
 using EventStore.Core.Services;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messages.ParallelQueryProcessingMessages;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -102,8 +103,12 @@ namespace EventStore.Projections.Core.Services.Processing
             if (_resultMessage != null)
             {
                 _resultWriter.WriteEofResult(
-                    _subscriptionId, _resultMessage.Partition, _resultMessage.Result, _resultMessage.Position,
-                    Guid.Empty, null);
+                    _subscriptionId,
+                    _resultMessage.Partition,
+                    _resultMessage.Result,
+                    _resultMessage.Position,
+                    Guid.Empty,
+                    null);
             }
             _container.CompleteSpoolProcessingWorkItem(_subscriptionId, _completedAtPosition);
             NextStage();

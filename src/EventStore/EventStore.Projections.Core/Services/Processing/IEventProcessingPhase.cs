@@ -37,7 +37,11 @@ namespace EventStore.Projections.Core.Services.Processing
         void RecordEventOrder(ResolvedEvent resolvedEvent, CheckpointTag orderCheckpointTag, Action completed);
 
         void EmitEofResult(
-            string partition, string resultBody, CheckpointTag causedBy, Guid causedByGuid, string correlationId);
+            string partition,
+            byte[] resultBody,
+            CheckpointTag causedBy,
+            Guid causedByGuid,
+            string correlationId);
 
         EventProcessedResult ProcessPartitionDeleted(string partition, CheckpointTag deletedPosition);
     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EventStore.Core.Bus;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -32,7 +33,7 @@ namespace EventStore.Projections.Core.Services.Processing
                             Guid.NewGuid(),
                             "Result",
                             true,
-                            partitionState.Result,
+                            partitionState.ResultBytes,
                             null,
                             phaseCheckpointTag,
                             null),

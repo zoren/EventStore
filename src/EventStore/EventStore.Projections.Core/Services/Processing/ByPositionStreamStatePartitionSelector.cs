@@ -1,5 +1,6 @@
 using EventStore.Core.Services;
 using EventStore.Projections.Core.Messages;
+using EventStore.Projections.Core.Utils;
 using Newtonsoft.Json.Linq;
 
 namespace EventStore.Projections.Core.Services.Processing
@@ -10,7 +11,7 @@ namespace EventStore.Projections.Core.Services.Processing
         {
             if (@event.Data.ResolvedLinkTo && @event.Data.PositionMetadata != null)
             {
-                var extra = @event.Data.PositionMetadata.ParseCheckpointExtraJson();
+                var extra = @event.Data.PositionMetadata.FromUtf8().ParseCheckpointExtraJson();
                 JToken v;
                 if (extra != null && extra.TryGetValue("$o", out v))
                 {

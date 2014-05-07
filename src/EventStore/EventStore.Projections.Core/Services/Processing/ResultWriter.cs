@@ -1,4 +1,5 @@
 using System;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -21,9 +22,7 @@ namespace EventStore.Projections.Core.Services.Processing
             _partitionCatalogStreamName = partitionCatalogStreamName;
         }
 
-        public void WriteEofResult(
-            Guid subscriptionId, string partition, string resultBody, CheckpointTag causedBy, Guid causedByGuid,
-            string correlationId)
+        public void WriteEofResult(Guid subscriptionId, string partition, byte[] resultBody, CheckpointTag causedBy, Guid causedByGuid, string correlationId)
         {
             if (resultBody != null)
                 WriteResult(partition, resultBody, causedBy, causedByGuid, correlationId);
@@ -35,7 +34,7 @@ namespace EventStore.Projections.Core.Services.Processing
         }
 
         private void WriteResult(
-            string partition, string resultBody, CheckpointTag causedBy, Guid causedByGuid, string correlationId)
+            string partition, byte[] resultBody, CheckpointTag causedBy, Guid causedByGuid, string correlationId)
         {
             var resultEvents = ResultUpdated(partition, resultBody, causedBy);
             if (resultEvents != null)
@@ -48,17 +47,16 @@ namespace EventStore.Projections.Core.Services.Processing
                 return;
             var oldState = result.OldState;
             var newState = result.NewState;
-            var resultBody = newState.Result;
-            if (oldState.Result != resultBody)
+            if (!oldState.SameResult(newState))
             {
                 var partition = result.Partition;
                 var causedBy = newState.CausedBy;
                 WriteResult(
-                    partition, resultBody, causedBy, result.CausedBy, result.CorrelationId);
+                    partition, newState.ResultBytes, causedBy, result.CausedBy, result.CorrelationId);
             }
         }
 
-        private EmittedEventEnvelope[] ResultUpdated(string partition, string result, CheckpointTag causedBy)
+        private EmittedEventEnvelope[] ResultUpdated(string partition, byte[] result, CheckpointTag causedBy)
         {
             return _resultEventEmitter.ResultUpdated(partition, result, causedBy);
         }
@@ -69,8 +67,14 @@ namespace EventStore.Projections.Core.Services.Processing
             {
                 new EmittedEventEnvelope(
                     new EmittedDataEvent(
-                        _partitionCatalogStreamName, Guid.NewGuid(), "$partition", false, partition,
-                        null, at, null))
+                        _partitionCatalogStreamName,
+                        Guid.NewGuid(),
+                        "$partition",
+                        false,
+                        partition.ToUtf8(),
+                        null,
+                        at,
+                        null))
             };
         }
 

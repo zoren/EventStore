@@ -3,6 +3,7 @@ using EventStore.Common.Utils;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection
 {
@@ -65,15 +66,15 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
             }
         }
 
-        public void Load(string state)
+        public void Load(byte[] state)
         {
             if (_failOnLoad)
                 throw new Exception("LOAD_FAILED");
             _loadCalled++;
-            _loadedState = state;
+            _loadedState = state.FromUtf8();
         }
 
-        public void LoadShared(string state)
+        public void LoadShared(byte[] state)
         {
             throw new NotImplementedException();
         }
@@ -106,9 +107,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
             throw new NotImplementedException();
         }
 
-        public bool ProcessEvent(
-            string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data,
-            out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
+        public bool ProcessEvent(string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data, out byte[] newState, out byte[] newSharedState, out EmittedEventEnvelope[] emittedEvents)
         {
             newSharedState = null;
             if (_failOnProcessEvent)
@@ -117,8 +116,8 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
             _lastProcessedEventType = data.EventType;
             _lastProcessedEventId = data.EventId;
             _lastProcessedSequencenumber = data.EventSequenceNumber;
-            _lastProcessedMetadata = data.Metadata;
-            _lastProcessedData = data.Data;
+            _lastProcessedMetadata = data.Metadata.FromUtf8();
+            _lastProcessedData = data.Data.FromUtf8();
             _lastPartition = partition;
 
             _eventsProcessed++;
@@ -129,15 +128,15 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
                     emittedEvents = null;
                     return false;
                 case "handle_this_type":
-                    _loadedState = newState = data.Data;
+                    _loadedState = (newState = data.Data).FromUtf8();
                     emittedEvents = null;
                     return true;
                 case "append":
-                    _loadedState = newState = _loadedState + data.Data;
+                    newState = (_loadedState = _loadedState + data.Data.FromUtf8()).ToUtf8();
                     emittedEvents = null;
                     return true;
                 case "no_state_emit1_type":
-                    _loadedState = newState = "";
+                    newState = (_loadedState = "").ToUtf8();
                     emittedEvents = new[]
                     {
                         new EmittedEventEnvelope(
@@ -146,7 +145,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
                     };
                     return true;
                 case "emit1_type":
-                    _loadedState = newState = data.Data;
+                    _loadedState = (newState = data.Data).FromUtf8();
                     emittedEvents = new[]
                     {
                         new EmittedEventEnvelope(
@@ -155,7 +154,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
                     };
                     return true;
                 case "emit22_type":
-                    _loadedState = newState = data.Data;
+                    _loadedState = (newState = data.Data).FromUtf8();
                     emittedEvents = new[]
                     {
                         new EmittedEventEnvelope(
@@ -167,7 +166,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
                     };
                     return true;
                 case "emit212_type":
-                    _loadedState = newState = data.Data;
+                    _loadedState = (newState = data.Data).FromUtf8();
                     emittedEvents = new[]
                     {
                         new EmittedEventEnvelope(
@@ -182,7 +181,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
                     };
                     return true;
                 case "emit12_type":
-                    _loadedState = newState = data.Data;
+                    _loadedState = (newState = data.Data).FromUtf8();
                     emittedEvents = new[]
                     {
                         new EmittedEventEnvelope(
@@ -194,7 +193,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
                     };
                     return true;
                 case "just_emit":
-                    newState = _loadedState;
+                    newState = _loadedState.ToUtf8();
                     emittedEvents = new[]
                     {
                         new EmittedEventEnvelope(
@@ -214,14 +213,14 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection
             return true;
         }
 
-        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out byte[] newState)
         {
             throw new NotImplementedException();
         }
 
-        public string TransformStateToResult()
+        public byte[] TransformStateToResult()
         {
-            return _loadedState;
+            return _loadedState.ToUtf8();
         }
 
         public void Dispose()

@@ -1,6 +1,7 @@
 using System;
 using EventStore.Core.Bus;
 using EventStore.Projections.Core.Messages.ParallelQueryProcessingMessages;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -18,9 +19,7 @@ namespace EventStore.Projections.Core.Services.Processing
             _masterCoreProjectionId = masterCoreProjectionId;
         }
 
-        public void WriteEofResult(
-            Guid subscriptionId, string partition, string resultBody, CheckpointTag causedBy, Guid causedByGuid,
-            string correlationId)
+        public void WriteEofResult(Guid subscriptionId, string partition, byte[] resultBody, CheckpointTag causedBy, Guid causedByGuid, string correlationId)
         {
             _resultsPublisher.Publish(
                 new PartitionProcessingResultOutput(

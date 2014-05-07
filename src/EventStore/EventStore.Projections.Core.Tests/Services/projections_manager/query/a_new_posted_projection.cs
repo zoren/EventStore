@@ -87,8 +87,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
                 Assert.AreEqual(
                     _projectionName,
                     _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Single().Name);
-                Assert.AreEqual(
-                    "", _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Single().State);
+                Assert.IsNull(
+                    _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Single().State);
             }
         }
 

@@ -48,7 +48,7 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state_cache
         {
             var data = _cache.TryGetAndLockPartitionState(
                 "partition1", CheckpointTag.FromPosition(0, 25000, 24000));
-            Assert.AreEqual("data1", data.State);
+            Assert.AreEqual("data1", data.GetStateString());
         }
 
         [Test, ExpectedException(typeof (InvalidOperationException))]
@@ -61,7 +61,7 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state_cache
         public void the_still_cached_unlocked_state_can_be_retrieved()
         {
             var state = _cache.TryGetPartitionState("partition2");
-            Assert.AreEqual("data2", state.State);
+            Assert.AreEqual("data2", state.GetStateString());
         }
 
         [Test]
@@ -69,14 +69,14 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state_cache
         {
             var data = _cache.TryGetAndLockPartitionState(
                 "partition2", CheckpointTag.FromPosition(0, 25000, 24000));
-            Assert.AreEqual("data2", data.State);
+            Assert.AreEqual("data2", data.GetStateString());
         }
 
         [Test]
         public void partitions_locked_after_the_unlock_position_can_be_retrieved_as_locked()
         {
             var data = _cache.GetLockedPartitionState("partition3");
-            Assert.AreEqual("data3", data.State);
+            Assert.AreEqual("data3", data.GetStateString());
         }
     }
 }

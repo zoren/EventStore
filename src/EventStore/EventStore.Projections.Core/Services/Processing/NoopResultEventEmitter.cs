@@ -4,7 +4,7 @@ namespace EventStore.Projections.Core.Services.Processing
 {
     public class NoopResultEventEmitter : IResultEventEmitter
     {
-        public EmittedEventEnvelope[] ResultUpdated(string partition, string result, CheckpointTag at)
+        public EmittedEventEnvelope[] ResultUpdated(string partition, byte[] result, CheckpointTag at)
         {
             throw new NotSupportedException("No results are expected from the projection");
         }

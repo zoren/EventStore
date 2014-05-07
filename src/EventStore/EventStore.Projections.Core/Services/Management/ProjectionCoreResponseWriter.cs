@@ -1,6 +1,7 @@
 ﻿using EventStore.Core.Bus;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messages.Persisted.Responses;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Management
 {
@@ -87,7 +88,7 @@ namespace EventStore.Projections.Core.Services.Management
             var command = new StateReport
             {
                 Id = message.ProjectionId.ToString("N"),
-                State = message.State,
+                State = message.State.FromUtf8(),
                 CorrelationId = message.CorrelationId.ToString("N"),
                 Position = message.Position,
                 Partition = message.Partition
@@ -100,7 +101,7 @@ namespace EventStore.Projections.Core.Services.Management
             var command = new ResultReport
             {
                 Id = message.ProjectionId.ToString("N"),
-                Result = message.Result,
+                Result = message.Result.FromUtf8(),
                 CorrelationId = message.CorrelationId.ToString("N"),
                 Position = message.Position,
                 Partition = message.Partition

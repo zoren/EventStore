@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EventStore.Projections.Core.Utils;
 using Newtonsoft.Json;
 
 namespace EventStore.Projections.Core.Services.Processing
@@ -20,9 +21,9 @@ namespace EventStore.Projections.Core.Services.Processing
             _streamDeletedAt = streamDeletedAt;
         }
 
-        public override string Data
+        public override byte[] Data
         {
-            get { return _target; }
+            get { return _target.ToUtf8(); }
         }
 
         public override bool IsJson

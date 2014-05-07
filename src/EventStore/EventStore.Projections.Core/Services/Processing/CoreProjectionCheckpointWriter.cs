@@ -38,16 +38,19 @@ namespace EventStore.Projections.Core.Services.Processing
         }
 
         public void BeginWriteCheckpoint(IEnvelope envelope,
-            CheckpointTag requestedCheckpointPosition, string requestedCheckpointState)
+            CheckpointTag requestedCheckpointPosition, byte[] requestedCheckpointState)
         {
             _envelope = envelope;
             _requestedCheckpointPosition = requestedCheckpointPosition;
             _inCheckpointWriteAttempt = 1;
             //TODO: pass correct expected version
             _checkpointEventToBePublished = new Event(
-                Guid.NewGuid(), ProjectionNamesBuilder.EventType_ProjectionCheckpoint, true,
-                requestedCheckpointState == null ? null : Helper.UTF8NoBom.GetBytes(requestedCheckpointState),
+                Guid.NewGuid(),
+                ProjectionNamesBuilder.EventType_ProjectionCheckpoint,
+                true,
+                requestedCheckpointState,
                 requestedCheckpointPosition.ToJsonBytes(projectionVersion: _projectionVersion));
+
             PublishWriteStreamMetadataAndCheckpointEvent();
         }
 

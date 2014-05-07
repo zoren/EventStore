@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Text;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.partition_state_update_manager
@@ -61,8 +62,8 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state_update_mana
             var event1 = events.Single(v => "$projections-projection-partition1-checkpoint" == v.StreamId);
             var event2 = events.Single(v => "$projections-projection-partition2-checkpoint" == v.StreamId);
 
-            Assert.AreEqual("[{\"state\":1}]", event1.Data);
-            Assert.AreEqual("[{\"state\":2}]", event2.Data);
+            Assert.AreEqual("[{\"state\":1}]", event1.Data.FromUtf8());
+            Assert.AreEqual("[{\"state\":2}]", event2.Data.FromUtf8());
         }
 
         [Test]

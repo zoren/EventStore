@@ -14,6 +14,7 @@ using EventStore.Core.Util;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messages.EventReaders.Feeds;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using EventStore.Transport.Http;
 using EventStore.Transport.Http.Codecs;
 using EventStore.Transport.Http.EntityManagement;
@@ -432,11 +433,11 @@ namespace EventStore.Projections.Core.Services.Http
                           let resolvedEvent = e.ResolvedEvent
                           let isJson = resolvedEvent.IsJson
                           let data = isJson 
-                                   ? EatException(() => (object) (resolvedEvent.Data.ParseJson<JObject>()), resolvedEvent.Data)
-                                   : resolvedEvent.Data
+                                   ? EatException(() => (object) (resolvedEvent.Data.ParseJson<JObject>()), resolvedEvent.Data.FromUtf8())
+                                   : resolvedEvent.Data.FromUtf8()
                           let metadata = isJson
-                                       ? EatException(() => (object) (resolvedEvent.Metadata.ParseJson<JObject>()), resolvedEvent.Metadata)
-                                       : resolvedEvent.Metadata
+                                       ? EatException(() => (object) (resolvedEvent.Metadata.ParseJson<JObject>()), resolvedEvent.Metadata.FromUtf8())
+                                       : resolvedEvent.Metadata.FromUtf8()
                           select new
                           {
                               EventStreamId = resolvedEvent.EventStreamId,

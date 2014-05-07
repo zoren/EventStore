@@ -2,6 +2,7 @@ using System;
 using EventStore.Core.Data;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Tests.Services.projections_manager;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEvent;
 
@@ -61,7 +62,7 @@ namespace EventStore.Projections.Core.Tests.Services.v8
             Assert.AreEqual(1, emittedEvents.Length);
             Assert.AreEqual("stream1", emittedEvents[0].Event.StreamId);
             Assert.AreEqual("event1", emittedEvents[0].Event.EventType);
-            Assert.AreEqual("{\"a\":1}", emittedEvents[0].Event.Data);
+            Assert.AreEqual("{\"a\":1}", emittedEvents[0].Event.Data.FromUtf8());
         }
     }
 }

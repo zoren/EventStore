@@ -62,7 +62,7 @@ namespace EventStore.Projections.Core.Messages
                 get { return TypeId; }
             }
 
-            private readonly string _result;
+            private readonly byte[] _result;
             private readonly Guid _causedByGuid;
             private readonly CheckpointTag _position;
 
@@ -73,7 +73,7 @@ namespace EventStore.Projections.Core.Messages
                 string partition,
                 Guid causedByGuid,
                 CheckpointTag position,
-                string result)
+                byte[] result)
                 : base(workerId, masterProjectionId, subscriptionId, partition)
             {
                 _causedByGuid = causedByGuid;
@@ -81,7 +81,7 @@ namespace EventStore.Projections.Core.Messages
                 _result = result;
             }
 
-            public string Result
+            public byte[] Result
             {
                 get { return _result; }
             }

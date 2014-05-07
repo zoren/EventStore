@@ -24,14 +24,14 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state_cache
         [Test]
         public void returns_correct_cached_data()
         {
-            Assert.AreEqual("data", _relockedData.State);
+            Assert.AreEqual("data", _relockedData.GetStateString());
         }
 
         [Test]
         public void relocked_state_can_be_retrieved_as_locked()
         {
             var state = _cache.GetLockedPartitionState("partition");
-            Assert.AreEqual("data", state.State);
+            Assert.AreEqual("data", state.GetStateString());
         }
 
         [Test, ExpectedException(typeof (InvalidOperationException))]
@@ -44,7 +44,7 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state_cache
         public void the_state_can_be_retrieved()
         {
             var state = _cache.TryGetPartitionState("partition");
-            Assert.AreEqual("data", state.State);
+            Assert.AreEqual("data", state.GetStateString());
         }
 
     }

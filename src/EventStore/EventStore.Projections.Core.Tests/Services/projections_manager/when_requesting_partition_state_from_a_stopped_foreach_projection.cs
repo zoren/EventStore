@@ -59,7 +59,7 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager
             Assert.AreEqual(2, _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Count());
             var second = _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Skip(1).First();
             Assert.AreEqual(_projectionName, second.Name);
-            Assert.AreEqual("", second.State);
+            Assert.IsNull(second.State);
         }
     }
 }

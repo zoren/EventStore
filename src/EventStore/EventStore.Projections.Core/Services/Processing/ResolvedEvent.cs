@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using EventStore.Common.Utils;
 using EventStore.Core.Data;
 using EventStore.Core.Services;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Projections.Core.Standard;
+using EventStore.Projections.Core.Utils;
 using Newtonsoft.Json.Linq;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
+
     public class ResolvedEvent
     {
         private readonly string _eventStreamId;
@@ -28,10 +28,10 @@ namespace EventStore.Projections.Core.Services.Processing
         public readonly bool IsJson;
         public readonly DateTime Timestamp;
 
-        public readonly string Data;
-        public readonly string Metadata;
-        public readonly string PositionMetadata;
-        public readonly string StreamMetadata;
+        public readonly byte[] Data;
+        public readonly byte[] Metadata;
+        public readonly byte[] PositionMetadata;
+        public readonly byte[] StreamMetadata;
         public readonly bool IsLinkToDeletedStream;
         public readonly bool IsLinkToDeletedStreamTombstone;
 
@@ -52,12 +52,10 @@ namespace EventStore.Projections.Core.Services.Processing
             Timestamp = positionEvent.TimeStamp;
 
             //TODO: handle utf-8 conversion exception
-            Data = @event != null && @event.Data != null ? Helper.UTF8NoBom.GetString(@event.Data) : null;
-            Metadata = @event != null && @event.Metadata != null ? Helper.UTF8NoBom.GetString(@event.Metadata) : null;
-            PositionMetadata = _resolvedLinkTo
-                ? (positionEvent.Metadata != null ? Helper.UTF8NoBom.GetString(positionEvent.Metadata) : null)
-                : null;
-            StreamMetadata = streamMetadata != null ? Helper.UTF8NoBom.GetString(streamMetadata) : null;
+            Data = @event != null ? @event.Data : null;
+            Metadata = @event != null ? @event.Metadata : null;
+            PositionMetadata = _resolvedLinkTo ? positionEvent.Metadata : null;
+            StreamMetadata = streamMetadata;
 
             TFPos eventOrLinkTargetPosition;
             if (_resolvedLinkTo)
@@ -127,10 +125,10 @@ namespace EventStore.Projections.Core.Services.Processing
             Timestamp = timestamp;
 
             //TODO: handle utf-8 conversion exception
-            Data = data != null ? Helper.UTF8NoBom.GetString(data) : null;
-            Metadata = metadata != null ? Helper.UTF8NoBom.GetString(metadata) : null;
-            PositionMetadata = positionMetadata != null ? Helper.UTF8NoBom.GetString(positionMetadata) : null;
-            StreamMetadata = streamMetadata != null ? Helper.UTF8NoBom.GetString(streamMetadata) : null;
+            Data = data;
+            Metadata = metadata;
+            PositionMetadata = positionMetadata;
+            StreamMetadata = streamMetadata;
         }
 
 
@@ -156,10 +154,10 @@ namespace EventStore.Projections.Core.Services.Processing
             IsJson = isJson;
             Timestamp = timestamp;
 
-            Data = data;
-            Metadata = metadata;
-            PositionMetadata = positionMetadata;
-            StreamMetadata = streamMetadata;
+            Data = data.ToUtf8();
+            Metadata = metadata.ToUtf8();
+            PositionMetadata = positionMetadata.ToUtf8();
+            StreamMetadata = streamMetadata.ToUtf8();
         }
 
         public string EventStreamId

@@ -48,21 +48,29 @@ namespace js1
 		return S_OK;
 	}
 
-	Status QueryScript::execute_handler(void *event_handler_handle, const uint16_t *data_json, 
-		const uint16_t *data_other[], int32_t other_length, v8::Handle<v8::String> &result,
-			v8::Handle<v8::String> &result2) 
+	Status QueryScript::execute_handler(void* event_handler_handle,
+		v8::Handle<v8::String> data,
+		v8::Handle<v8::String> metadata,
+		v8::Handle<v8::String> position_metadata,
+		v8::Handle<v8::String> stream_metadata,
+		const uint16_t *data_other[], int32_t other_length,
+		v8::Handle<v8::String> &result,
+		v8::Handle<v8::String> &result2)
 	{
 		EventHandler *event_handler = reinterpret_cast<EventHandler *>(event_handler_handle);
 
 		v8::Context::Scope local(get_context());
 
-		v8::Handle<v8::String> data_json_handle = v8::String::NewFromTwoByte(v8::Isolate::GetCurrent(), data_json);
 		v8::Handle<v8::Value> argv[10];
-		argv[0] = data_json_handle;
+		argv[0] = data;
+		argv[1] = metadata;
+		argv[2] = position_metadata;
+		argv[3] = stream_metadata;
 
+		const int predefinedArgumentsCount = 4;
 		for (int i = 0; i < other_length; i++) {
 			v8::Handle<v8::String> data_other_handle = v8::String::NewFromTwoByte(v8::Isolate::GetCurrent(), data_other[i]);
-			argv[1 + i] = data_other_handle;
+			argv[predefinedArgumentsCount + i] = data_other_handle;
 		}
 
 		v8::Handle<v8::Object> global = get_context()->Global();
@@ -74,7 +82,7 @@ namespace js1
 			printf ("Terminated? (1)");
 			return S_TERMINATED;
 		}
-		v8::Handle<v8::Value> call_result = event_handler->get_handler()->Call(global, 1 + other_length, argv);
+		v8::Handle<v8::Value> call_result = event_handler->get_handler()->Call(global, predefinedArgumentsCount + other_length, argv);
 		if (!prelude->exit_cancellable_region())
 		{
 			printf ("Terminated? (2)");

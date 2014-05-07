@@ -31,8 +31,14 @@ namespace js1 {
 
 		Status compile_script(const uint16_t *query_source, const uint16_t *file_name);
 		Status try_run();
-		Status execute_handler(void* event_handler_handle, const uint16_t *data_json, 
-			const uint16_t *data_other[], int32_t other_length, v8::Handle<v8::String> &result,
+		Status execute_handler(
+			void* event_handler_handle, 
+			v8::Handle<v8::String> data,
+			v8::Handle<v8::String> metadata,
+			v8::Handle<v8::String> position_metadata,
+			v8::Handle<v8::String> stream_metadata,
+			const uint16_t *data_other[], int32_t other_length,
+			v8::Handle<v8::String> &result,
 			v8::Handle<v8::String> &result2);
 	protected:
 		virtual v8::Isolate *get_isolate();

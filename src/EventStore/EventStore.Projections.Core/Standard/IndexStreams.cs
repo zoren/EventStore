@@ -3,6 +3,7 @@ using EventStore.Core.Services;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Standard
 {
@@ -27,11 +28,11 @@ namespace EventStore.Projections.Core.Standard
             builder.SetIncludeLinks();
         }
 
-        public void Load(string state)
+        public void Load(byte[] state)
         {
         }
 
-        public void LoadShared(string state)
+        public void LoadShared(byte[] state)
         {
             throw new NotImplementedException();
         }
@@ -54,9 +55,7 @@ namespace EventStore.Projections.Core.Standard
             throw new NotImplementedException();
         }
 
-        public bool ProcessEvent(
-            string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data,
-            out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
+        public bool ProcessEvent(string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data, out byte[] newState, out byte[] newSharedState, out EmittedEventEnvelope[] emittedEvents)
         {
             newSharedState = null;
             emittedEvents = null;
@@ -68,8 +67,14 @@ namespace EventStore.Projections.Core.Standard
             {
                 new EmittedEventEnvelope(
                     new EmittedDataEvent(
-                        SystemStreams.StreamsStream, Guid.NewGuid(), SystemEventTypes.LinkTo, false,
-                        data.PositionSequenceNumber + "@" + data.PositionStreamId, null, eventPosition, expectedTag: null))
+                        SystemStreams.StreamsStream,
+                        Guid.NewGuid(),
+                        SystemEventTypes.LinkTo,
+                        false,
+                        (data.PositionSequenceNumber + "@" + data.PositionStreamId).ToUtf8(),
+                        null,
+                        eventPosition,
+                        expectedTag: null))
             };
 
             return true;
@@ -81,12 +86,12 @@ namespace EventStore.Projections.Core.Standard
             return false;
         }
 
-        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out byte[] newState)
         {
             throw new NotImplementedException();
         }
 
-        public string TransformStateToResult()
+        public byte[] TransformStateToResult()
         {
             throw new NotImplementedException();
         }

@@ -4,6 +4,7 @@ using System.Linq;
 using EventStore.Common.Log;
 using EventStore.Core.Bus;
 using EventStore.Projections.Core.Messages;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -185,15 +186,21 @@ namespace EventStore.Projections.Core.Services.Processing
         }
 
         private EventProcessedResult InternalProcessCommittedEvent(
-            string partition, EventReaderSubscriptionMessage.CommittedEventReceived message)
+            string partition,
+            EventReaderSubscriptionMessage.CommittedEventReceived message)
         {
-            string newState;
-            string projectionResult;
+            byte[] newState;
+            byte[] newSharedState;
+            byte[] projectionResult;
             EmittedEventEnvelope[] emittedEvents;
             //TODO: support shared state
-            string newSharedState;
             var hasBeenProcessed = SafeProcessEventByHandler(
-                partition, message, out newState, out newSharedState, out projectionResult, out emittedEvents);
+                partition,
+                message,
+                out newState,
+                out newSharedState,
+                out projectionResult,
+                out emittedEvents);
             if (hasBeenProcessed)
             {
                 var newPartitionState = new PartitionState(newState, projectionResult, message.CheckpointTag);
@@ -202,18 +209,24 @@ namespace EventStore.Projections.Core.Services.Processing
                     : null;
 
                 return InternalCommittedEventProcessed(
-                    partition, message, emittedEvents, newPartitionState, newSharedPartitionState);
+                    partition,
+                    message,
+                    emittedEvents,
+                    newPartitionState,
+                    newSharedPartitionState);
             }
             return null;
         }
 
-        private EventProcessedResult InternalProcessPartitionDeleted(
-            string partition, CheckpointTag deletedPosition)
+        private EventProcessedResult InternalProcessPartitionDeleted(string partition, CheckpointTag deletedPosition)
         {
-            string newState;
-            string projectionResult;
+            byte[] newState;
+            byte[] projectionResult;
             var hasBeenProcessed = SafeProcessPartitionDeletedByHandler(
-                partition, deletedPosition, out newState, out projectionResult);
+                partition,
+                deletedPosition,
+                out newState,
+                out projectionResult);
             if (hasBeenProcessed)
             {
                 var newPartitionState = new PartitionState(newState, projectionResult, deletedPosition);
@@ -231,8 +244,12 @@ namespace EventStore.Projections.Core.Services.Processing
         }
 
         private bool SafeProcessEventByHandler(
-            string partition, EventReaderSubscriptionMessage.CommittedEventReceived message, out string newState,
-            out string newSharedState, out string projectionResult, out EmittedEventEnvelope[] emittedEvents)
+            string partition,
+            EventReaderSubscriptionMessage.CommittedEventReceived message,
+            out byte[] newState,
+            out byte[] newSharedState,
+            out byte[] projectionResult,
+            out EmittedEventEnvelope[] emittedEvents)
         {
             projectionResult = null;
             //TODO: not emitting (optimized) projection handlers can skip serializing state on each processed event
@@ -240,7 +257,12 @@ namespace EventStore.Projections.Core.Services.Processing
             try
             {
                 hasBeenProcessed = ProcessEventByHandler(
-                    partition, message, out newState, out newSharedState, out projectionResult, out emittedEvents);
+                    partition,
+                    message,
+                    out newState,
+                    out newSharedState,
+                    out projectionResult,
+                    out emittedEvents);
             }
             catch (Exception ex)
             {
@@ -249,19 +271,24 @@ namespace EventStore.Projections.Core.Services.Processing
                 SetFaulting(
                     String.Format(
                         "The {0} projection failed to process an event.\r\nHandler: {1}\r\nEvent Position: {2}\r\n\r\nMessage:\r\n\r\n{3}",
-                        _projectionName, GetHandlerTypeName(), message.CheckpointTag, ex.Message), ex);
+                        _projectionName,
+                        GetHandlerTypeName(),
+                        message.CheckpointTag,
+                        ex.Message),
+                    ex);
                 newState = null;
                 newSharedState = null;
                 emittedEvents = null;
                 hasBeenProcessed = false;
             }
-            newState = newState ?? "";
             return hasBeenProcessed;
         }
 
         private bool SafeProcessPartitionDeletedByHandler(
-            string partition, CheckpointTag deletedPosition, out string newState,
-            out string projectionResult)
+            string partition,
+            CheckpointTag deletedPosition,
+            out byte[] newState,
+            out byte[] projectionResult)
         {
             projectionResult = null;
             //TODO: not emitting (optimized) projection handlers can skip serializing state on each processed event
@@ -269,18 +296,24 @@ namespace EventStore.Projections.Core.Services.Processing
             try
             {
                 hasBeenProcessed = ProcessPartitionDeletedByHandler(
-                    partition, deletedPosition, out newState, out projectionResult);
+                    partition,
+                    deletedPosition,
+                    out newState,
+                    out projectionResult);
             }
             catch (Exception ex)
             {
                 SetFaulting(
                     String.Format(
                         "The {0} projection failed to process a delete partition notification.\r\nHandler: {1}\r\nEvent Position: {2}\r\n\r\nMessage:\r\n\r\n{3}",
-                        _projectionName, GetHandlerTypeName(), deletedPosition, ex.Message), ex);
+                        _projectionName,
+                        GetHandlerTypeName(),
+                        deletedPosition,
+                        ex.Message),
+                    ex);
                 newState = null;
                 hasBeenProcessed = false;
             }
-            newState = newState ?? "";
             return hasBeenProcessed;
         }
 
@@ -310,8 +343,12 @@ namespace EventStore.Projections.Core.Services.Processing
         }
 
         private bool ProcessEventByHandler(
-            string partition, EventReaderSubscriptionMessage.CommittedEventReceived message, out string newState,
-            out string newSharedState, out string projectionResult, out EmittedEventEnvelope[] emittedEvents)
+            string partition,
+            EventReaderSubscriptionMessage.CommittedEventReceived message,
+            out byte[] newState,
+            out byte[] newSharedState,
+            out byte[] projectionResult,
+            out EmittedEventEnvelope[] emittedEvents)
         {
             projectionResult = null;
             var newPatitionInitialized = InitOrLoadHandlerState(partition);
@@ -320,17 +357,27 @@ namespace EventStore.Projections.Core.Services.Processing
             if (newPatitionInitialized)
             {
                 _projectionStateHandler.ProcessPartitionCreated(
-                    partition, message.CheckpointTag, message.Data, out eventsEmittedOnInitialization);
+                    partition,
+                    message.CheckpointTag,
+                    message.Data,
+                    out eventsEmittedOnInitialization);
             }
 
             var result = _projectionStateHandler.ProcessEvent(
-                partition, message.CheckpointTag, message.EventCategory, message.Data, out newState, out newSharedState,
+                partition,
+                message.CheckpointTag,
+                message.EventCategory,
+                message.Data,
+                out newState,
+                out newSharedState,
                 out emittedEvents);
+
+
             if (result)
             {
                 var oldState = _partitionStateCache.GetLockedPartitionState(partition);
                 //TODO: depending on query processing final state to result transformation should happen either here (if EOF) on while writing results
-                if ( /*_producesRunningResults && */oldState.State != newState)
+                if ( /*_producesRunningResults && */!oldState.SameState(newState))
                 {
                     if (_definesStateTransform)
                     {
@@ -343,7 +390,7 @@ namespace EventStore.Projections.Core.Services.Processing
                 }
                 else
                 {
-                    projectionResult = oldState.Result;
+                    projectionResult = oldState.ResultBytes;
                 }
             }
             _stopwatch.Stop();
@@ -359,19 +406,20 @@ namespace EventStore.Projections.Core.Services.Processing
         }
 
         private bool ProcessPartitionDeletedByHandler(
-            string partition, CheckpointTag deletePosition, out string newState,
-            out string projectionResult)
+            string partition,
+            CheckpointTag deletePosition,
+            out byte[] newState,
+            out byte[] projectionResult)
         {
             projectionResult = null;
             InitOrLoadHandlerState(partition);
             _stopwatch.Start();
-            var result = _projectionStateHandler.ProcessPartitionDeleted(
-                partition, deletePosition, out newState);
+            var result = _projectionStateHandler.ProcessPartitionDeleted(partition, deletePosition, out newState);
             if (result)
             {
                 var oldState = _partitionStateCache.GetLockedPartitionState(partition);
                 //TODO: depending on query processing final state to result transformation should happen either here (if EOF) on while writing results
-                if ( /*_producesRunningResults && */oldState.State != newState)
+                if ( /*_producesRunningResults && */!oldState.SameState(newState))
                 {
                     if (_definesStateTransform)
                     {
@@ -384,7 +432,7 @@ namespace EventStore.Projections.Core.Services.Processing
                 }
                 else
                 {
-                    projectionResult = oldState.Result;
+                    projectionResult = oldState.ResultBytes;
                 }
             }
             _stopwatch.Stop();
@@ -412,8 +460,8 @@ namespace EventStore.Projections.Core.Services.Processing
             var newState = _partitionStateCache.GetLockedPartitionState(partition);
             _handlerPartition = partition;
             var initialized = false;
-            if (newState != null && !String.IsNullOrEmpty(newState.State))
-                _projectionStateHandler.Load(newState.State);
+            if (newState != null && newState.StateBytes != null)
+                _projectionStateHandler.Load(newState.StateBytes);
             else
             {
                 initialized = true;
@@ -424,8 +472,8 @@ namespace EventStore.Projections.Core.Services.Processing
             if (_isBiState)
             {
                 var newSharedState = _partitionStateCache.GetLockedPartitionState("");
-                if (newSharedState != null && !String.IsNullOrEmpty(newSharedState.State))
-                    _projectionStateHandler.LoadShared(newSharedState.State);
+                if (newSharedState != null && newSharedState.StateBytes != null)
+                    _projectionStateHandler.LoadShared(newSharedState.StateBytes);
                 else
                     _projectionStateHandler.InitializeShared();
             }

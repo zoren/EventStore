@@ -2,6 +2,7 @@ using System;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager
 {
@@ -29,12 +30,12 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager
             builder.SetIsBiState(true);
         }
 
-        public void Load(string state)
+        public void Load(byte[] state)
         {
             _logger("Load(" + state + ")");
         }
 
-        public void LoadShared(string state)
+        public void LoadShared(byte[] state)
         {
             _logger("LoadShared(" + state + ")");
         }
@@ -60,16 +61,14 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager
             throw new NotImplementedException();
         }
 
-        public bool ProcessEvent(
-            string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data, out string newState,
-            out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
+        public bool ProcessEvent(string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data, out byte[] newState, out byte[] newSharedState, out EmittedEventEnvelope[] emittedEvents)
         {
             newSharedState = null;
             if (data.EventType == "fail" || _query == "fail")
                 throw new Exception("failed");
             _logger("ProcessEvent(" + "..." + ")");
-            newState = "{\"data\": 1}";
-            newSharedState = "{\"data\": 2}";
+            newState = "{\"data\": 1}".ToUtf8();
+            newSharedState = "{\"data\": 2}".ToUtf8();
             emittedEvents = null;
             return true;
         }
@@ -81,12 +80,12 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager
             return false;
         }
 
-        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out byte[] newState)
         {
             throw new NotImplementedException();
         }
 
-        public string TransformStateToResult()
+        public byte[] TransformStateToResult()
         {
             throw new NotImplementedException();
         }

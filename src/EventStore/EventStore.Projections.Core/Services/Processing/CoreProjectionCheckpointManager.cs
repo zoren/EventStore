@@ -3,6 +3,7 @@ using System.Diagnostics.Contracts;
 using EventStore.Common.Log;
 using EventStore.Core.Bus;
 using EventStore.Projections.Core.Messages;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -62,14 +63,15 @@ namespace EventStore.Projections.Core.Services.Processing
             _logger = LogManager.GetLoggerFor<CoreProjectionCheckpointManager>();
             _namingBuilder = namingBuilder;
             _usePersistentCheckpoints = usePersistentCheckpoints;
-            _requestedCheckpointState = new PartitionState("", null, _zeroTag);
-            _currentProjectionState = new PartitionState("", null, _zeroTag);
+            _requestedCheckpointState = new PartitionState(_zeroTag);
+            _currentProjectionState = new PartitionState(_zeroTag);
         }
 
         protected abstract ProjectionCheckpoint CreateProjectionCheckpoint(CheckpointTag checkpointPosition);
 
         protected abstract void BeginWriteCheckpoint(
-            CheckpointTag requestedCheckpointPosition, string requestedCheckpointState);
+            CheckpointTag requestedCheckpointPosition,
+            byte[] requestedCheckpointState);
 
         protected abstract void CapturePartitionStateUpdated(string partition, PartitionState oldState, PartitionState newState);
         protected abstract void EmitPartitionCheckpoints();
@@ -88,7 +90,7 @@ namespace EventStore.Projections.Core.Services.Processing
             _closingCheckpoint = null;
             _requestedCheckpointPosition = null;
             _inCheckpoint = false;
-            _requestedCheckpointState = new PartitionState("", null, _zeroTag);
+            _requestedCheckpointState = new PartitionState(_zeroTag);
             _lastCompletedCheckpointPosition = null;
             _lastProcessedEventPosition.Initialize();
             _lastProcessedEventProgress = -1;
@@ -97,7 +99,7 @@ namespace EventStore.Projections.Core.Services.Processing
             _started = false;
             _stopping = false;
             _stopped = false;
-            _currentProjectionState = new PartitionState("", null, _zeroTag);
+            _currentProjectionState = new PartitionState(_zeroTag);
 
         }
 
@@ -167,7 +169,7 @@ namespace EventStore.Projections.Core.Services.Processing
             if (_usePersistentCheckpoints && partition != "")
                 CapturePartitionStateUpdated(partition, oldState, newState);
 
-            if (partition == "" && newState.State == null) // ignore non-root partitions and non-changed states
+            if (partition == "" && newState.StateBytes == null) // ignore non-root partitions and non-changed states
                 throw new NotSupportedException("Internal check");
 
             if (partition == "")

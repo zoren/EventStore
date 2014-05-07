@@ -106,8 +106,25 @@ extern "C"
 		delete compiled_script;
 	};
 
-	JS1_API bool STDCALL execute_command_handler(void *script_handle, void* event_handler_handle, const uint16_t *data_json, 
-		const uint16_t *data_other[], int32_t other_length, uint16_t **result_json, uint16_t **result2_json, void **memory_handle)
+	JS1_API bool STDCALL execute_command_handler(
+		void *script_handle,
+		void *event_handler_handle,
+		const char *data,
+		const int32_t data_length,
+		const char *metadata,
+		const int32_t metadata_length,
+		const bool position_metadata_differs,
+		const char *position_metadata,
+		const int32_t position_metadata_length,
+		const char *stream_metadata,
+		const int32_t stream_metadata_length,
+		const uint16_t *data_other[],
+		int32_t other_length,
+		char **result_json,
+		int32_t *result_json_length,
+		char **result2_json,
+		int32_t *result_json2_length,
+		void **memory_handle)
 	{
 
 		js1::QueryScript *query_script;
@@ -118,23 +135,50 @@ extern "C"
 
 		v8::HandleScope handle_scope(v8::Isolate::GetCurrent());
 
+		v8::Handle<v8::String> data_handle = v8::String::NewFromUtf8(
+			v8::Isolate::GetCurrent(), data, v8::String::kNormalString, data_length);
+
+		v8::Handle<v8::String> metadata_handle = v8::String::NewFromUtf8(
+			v8::Isolate::GetCurrent(), metadata, v8::String::kNormalString, metadata_length);
+
+		v8::Handle<v8::String> position_metadata_handle = position_metadata_differs ?
+			v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), position_metadata, v8::String::kNormalString, position_metadata_length) :
+			metadata_handle;
+
+		v8::Handle<v8::String> stream_metadata_handle = v8::String::NewFromUtf8(
+			v8::Isolate::GetCurrent(), stream_metadata, v8::String::kNormalString, stream_metadata_length);
+
+
 		v8::Handle<v8::String> result;
 		v8::Handle<v8::String> result2;
 		js1::Status success = query_script->
-			execute_handler(event_handler_handle, data_json, data_other, other_length, result, result2);
+			execute_handler(
+			event_handler_handle,
+			data_handle,
+			metadata_handle,
+			position_metadata_handle,
+			stream_metadata_handle,
+			data_other,
+			other_length,
+			result,
+			result2);
 
 		if (success != js1::S_OK) {
 			*result_json = NULL;
+			*result_json_length = 0;
+			*result_json2_length = 0;
 			*memory_handle = NULL;
 			return false;
 		}
 		//NOTE: incorrect return types are handled in execute_handler
 		if (!result.IsEmpty()) 
 		{
-			v8::String::Value * result_buffer = new v8::String::Value(result);
-			v8::String::Value * result2_buffer = new v8::String::Value(result2);
+			v8::String::Utf8Value * result_buffer = new v8::String::Utf8Value(result);
+			v8::String::Utf8Value * result2_buffer = new v8::String::Utf8Value(result2);
 			*result_json = **result_buffer;
 			*result2_json = **result2_buffer;
+			*result_json_length = result_buffer->length();
+			*result_json2_length = result2_buffer->length();
 
 			void** handles = new void*[2];
 

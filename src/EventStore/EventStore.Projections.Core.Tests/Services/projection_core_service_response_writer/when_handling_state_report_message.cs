@@ -2,6 +2,7 @@
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messages.Persisted.Responses;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projection_core_service_response_writer
@@ -31,7 +32,7 @@ namespace EventStore.Projections.Core.Tests.Services.projection_core_service_res
                     _correlationId,
                     _projectionId,
                     _partition,
-                    _state,
+                    _state.ToUtf8(),
                     _position));
         }
 

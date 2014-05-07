@@ -52,10 +52,25 @@ namespace EventStore.Projections.Core.v8
         //TODO: add no result execute_handler
         [DllImport("js1", EntryPoint = "execute_command_handler")]
         [return: MarshalAs(UnmanagedType.I1)]
-        public static extern bool ExecuteCommandHandler(
-            IntPtr scriptHandle, IntPtr eventHandlerHandle, [MarshalAs(UnmanagedType.LPWStr)] string dataJson,
-            [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPWStr)] string[] dataOther, int otherLength,
-            out IntPtr resultJson, out IntPtr result2Json, out IntPtr memoryHandle);
+        unsafe public static extern bool ExecuteCommandHandler(
+            IntPtr scriptHandle,
+            IntPtr eventHandlerHandle,
+            byte* data,
+            int jsonLength,
+            byte* metadata,
+            int metadataLength,
+            bool positionMetadataDiffers,
+            byte* positionMetadata,
+            int positionMetadataLength,
+            byte* streamMetadata,
+            int streamMetadataLength,
+            [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPWStr)] string[] dataOther,
+            int otherLength,
+            out IntPtr resultJson,
+            out int resultJsonLength,
+            out IntPtr result2Json,
+            out int result2JsonLength,
+            out IntPtr memoryHandle);
 
         [DllImport("js1", EntryPoint = "free_result")]
         public static extern void FreeResult(IntPtr resultHandle);

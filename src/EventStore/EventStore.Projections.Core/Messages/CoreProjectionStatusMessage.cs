@@ -108,20 +108,20 @@ namespace EventStore.Projections.Core.Messages
                 get { return TypeId; }
             }
 
-            private readonly string _state;
+            private readonly byte[] _state;
 
             public StateReport(
                 Guid correlationId,
                 Guid projectionId,
                 string partition,
-                string state,
+                byte[] state,
                 CheckpointTag position)
                 : base(correlationId, projectionId, partition, position)
             {
                 _state = state;
             }
 
-            public string State
+            public byte[] State
             {
                 get { return _state; }
             }
@@ -137,20 +137,20 @@ namespace EventStore.Projections.Core.Messages
                 get { return TypeId; }
             }
 
-            private readonly string _result;
+            private readonly byte[] _result;
 
             public ResultReport(
                 Guid correlationId,
                 Guid projectionId,
                 string partition,
-                string result,
+                byte[] result,
                 CheckpointTag position)
                 : base(correlationId, projectionId, partition, position)
             {
                 _result = result;
             }
 
-            public string Result
+            public byte[] Result
             {
                 get { return _result; }
             }

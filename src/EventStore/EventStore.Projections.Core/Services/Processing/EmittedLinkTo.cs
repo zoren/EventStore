@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Text;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -27,14 +28,13 @@ namespace EventStore.Projections.Core.Services.Processing
             _targetStreamId = targetStreamId;
         }
 
-        public override string Data
+        public override byte[] Data
         {
             get
             {
                 if (!IsReady())
                     throw new InvalidOperationException("Link target has not been yet committed");
-                return
-                    _eventNumber.Value.ToString(CultureInfo.InvariantCulture) + "@" + _targetStreamId;
+                return (_eventNumber.Value.ToString(CultureInfo.InvariantCulture) + "@" + _targetStreamId).ToUtf8();
             }
         }
 

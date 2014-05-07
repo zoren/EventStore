@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -32,11 +33,11 @@ namespace EventStore.Projections.Core.Standard
             builder.AllEvents();
         }
 
-        public void Load(string state)
+        public void Load(byte[] state)
         {
         }
 
-        public void LoadShared(string state)
+        public void LoadShared(byte[] state)
         {
             throw new NotImplementedException();
         }
@@ -59,9 +60,7 @@ namespace EventStore.Projections.Core.Standard
             throw new NotImplementedException();
         }
 
-        public bool ProcessEvent(
-            string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data,
-            out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
+        public bool ProcessEvent(string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data, out byte[] newState, out byte[] newSharedState, out EmittedEventEnvelope[] emittedEvents)
         {
             newSharedState = null;
             emittedEvents = null;
@@ -82,11 +81,16 @@ namespace EventStore.Projections.Core.Standard
             {
                 new EmittedEventEnvelope(
                     new EmittedDataEvent(
-                        _indexStreamPrefix + indexedEventType, Guid.NewGuid(), "$>", false,
-                        data.EventSequenceNumber + "@" + positionStreamId,
+                        _indexStreamPrefix + indexedEventType,
+                        Guid.NewGuid(),
+                        "$>",
+                        false,
+                        (data.EventSequenceNumber + "@" + positionStreamId).ToUtf8(),
                         isStreamDeletedEvent
                             ? new ExtraMetaData(new Dictionary<string, JRaw> {{"$deleted", new JRaw(-1)}})
-                            : null, eventPosition, expectedTag: null))
+                            : null,
+                        eventPosition,
+                        expectedTag: null))
             };
 
             return true;
@@ -98,12 +102,12 @@ namespace EventStore.Projections.Core.Standard
             return false;
         }
 
-        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out byte[] newState)
         {
             throw new NotImplementedException();
         }
 
-        public string TransformStateToResult()
+        public byte[] TransformStateToResult()
         {
             throw new NotImplementedException();
         }
@@ -119,7 +123,7 @@ namespace EventStore.Projections.Core.Standard
                 new EmittedEventEnvelope(
                     new EmittedDataEvent(
                         _indexCheckpointStream, Guid.NewGuid(), ProjectionNamesBuilder.EventType_PartitionCheckpoint,
-                        true, checkpointPosition.ToJsonString(), null, checkpointPosition, expectedTag: null))
+                        true, checkpointPosition.ToJsonBytes(), null, checkpointPosition, expectedTag: null))
             };
         }
 

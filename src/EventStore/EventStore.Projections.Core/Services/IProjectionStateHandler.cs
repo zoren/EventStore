@@ -2,6 +2,7 @@ using System;
 using EventStore.Core.Data;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEvent;
 
 namespace EventStore.Projections.Core.Services
@@ -14,8 +15,8 @@ namespace EventStore.Projections.Core.Services
 
     public interface IProjectionStateHandler : IDisposable, ISourceDefinitionSource
     {
-        void Load(string state);
-        void LoadShared(string state);
+        void Load(byte[] state);
+        void LoadShared(byte[] state);
         void Initialize();
         void InitializeShared();
 
@@ -37,9 +38,7 @@ namespace EventStore.Projections.Core.Services
         /// Processes event and updates internal state if necessary.  
         /// </summary>
         /// <returns>true - if event was processed (new state must be returned) </returns>
-        bool ProcessEvent(
-            string partition, CheckpointTag eventPosition, string category, ResolvedEvent data, out string newState,
-            out string newSharedState, out EmittedEventEnvelope[] emittedEvents);
+        bool ProcessEvent(string partition, CheckpointTag eventPosition, string category, ResolvedEvent data, out byte[] newState, out byte[] newSharedState, out EmittedEventEnvelope[] emittedEvents);
 
         /// <summary>
         /// Processes partition created notificatiion and updates internal state if necessary.  
@@ -56,13 +55,13 @@ namespace EventStore.Projections.Core.Services
         /// Processes partition deleted notification and updates internal state if necessary.  
         /// </summary>
         /// <returns>true - if event was processed (new state must be returned) </returns>
-        bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState);
+        bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out byte[] newState);
 
         /// <summary>
         /// Transforms current state into a projection result.  Should not call any emit/linkTo etc 
         /// </summary>
         /// <returns>result JSON or NULL if current state has been skipped</returns>
-        string TransformStateToResult();
+        byte[] TransformStateToResult();
     }
 
     public interface IProjectionCheckpointHandler
@@ -77,12 +76,29 @@ namespace EventStore.Projections.Core.Services
             string eventType, string category, Guid eventId, int eventSequenceNumber, string metadata, string data,
             out string state, out EmittedEventEnvelope[] emittedEvents, bool isJson = true)
         {
-            string ignoredSharedState;
-            return self.ProcessEvent(
-                partition, eventPosition, category,
+            byte[] ignoredSharedStateBytes;
+            byte[] stateBytes;
+            var result = self.ProcessEvent(
+                partition,
+                eventPosition,
+                category,
                 new ResolvedEvent(
-                    streamId, eventSequenceNumber, streamId, eventSequenceNumber, false, new TFPos(0, -1), eventId,
-                    eventType, isJson, data, metadata), out state, out ignoredSharedState, out emittedEvents);
+                    streamId,
+                    eventSequenceNumber,
+                    streamId,
+                    eventSequenceNumber,
+                    false,
+                    new TFPos(0, -1),
+                    eventId,
+                    eventType,
+                    isJson,
+                    data,
+                    metadata),
+                out stateBytes,
+                out ignoredSharedStateBytes,
+                out emittedEvents);
+            state = stateBytes.FromUtf8();
+            return result;
         }
 
         public static bool ProcessEvent(
@@ -90,11 +106,32 @@ namespace EventStore.Projections.Core.Services
             string eventType, string category, Guid eventId, int eventSequenceNumber, string metadata, string data,
             out string state, out string sharedState, out EmittedEventEnvelope[] emittedEvents, bool isJson = true)
         {
-            return self.ProcessEvent(
-                partition, eventPosition, category,
+            byte[] stateBytes;
+            byte[] sharedStateBytes;
+            var result = self.ProcessEvent(
+                partition,
+                eventPosition,
+                category,
                 new ResolvedEvent(
-                    streamId, eventSequenceNumber, streamId, eventSequenceNumber, false, new TFPos(0, -1), eventId,
-                    eventType, isJson, data, metadata), out state, out sharedState, out emittedEvents);
+                    streamId,
+                    eventSequenceNumber,
+                    streamId,
+                    eventSequenceNumber,
+                    false,
+                    new TFPos(0, -1),
+                    eventId,
+                    eventType,
+                    isJson,
+                    data,
+                    metadata),
+                out stateBytes,
+                out sharedStateBytes,
+                out emittedEvents);
+
+            state = stateBytes.FromUtf8();
+            sharedState = sharedStateBytes.FromUtf8();
+
+            return result;
         }
 
         public static string GetNativeHandlerName(this Type handlerType)

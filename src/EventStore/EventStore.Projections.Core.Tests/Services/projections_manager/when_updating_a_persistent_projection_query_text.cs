@@ -99,8 +99,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager
             Assert.AreEqual(
                 _projectionName,
                 _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Single().Name);
-            Assert.AreEqual(// empty? why?
-                "", _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Single().State);
+            Assert.IsNull( // null? why?
+                _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Single().State);
         }
 
         [Test, Category("v8")]

@@ -2,6 +2,7 @@
 using EventStore.Core.Data;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Standard;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEvent;
 
@@ -23,11 +24,16 @@ namespace EventStore.Projections.Core.Tests.Services.handlers
             {
                 _handler = new CategorizeEventsByStreamPath("-", Console.WriteLine);
                 _handler.Initialize();
+                byte[] stateBytes;
+                byte[] sharedStateBytes;
                 _result = _handler.ProcessEvent(
                     "", CheckpointTag.FromPosition(0, 200, 150), null,
                     new ResolvedEvent(
                         "cat1-stream1", 10, "cat1-stream1", 10, false, new TFPos(200, 150), Guid.NewGuid(),
-                        "event_type", true, "{}", "{}"), out _state, out _sharedState, out _emittedEvents);
+                        "event_type", true, "{}", "{}"), out stateBytes, out sharedStateBytes, out _emittedEvents);
+
+                _state = stateBytes.FromUtf8();
+                _sharedState = sharedStateBytes.FromUtf8();
             }
 
             [Test]
@@ -50,7 +56,7 @@ namespace EventStore.Projections.Core.Tests.Services.handlers
                 var @event = _emittedEvents[0].Event;
                 Assert.AreEqual("$>", @event.EventType);
                 Assert.AreEqual("$ce-cat1", @event.StreamId);
-                Assert.AreEqual("10@cat1-stream1", @event.Data);
+                Assert.AreEqual("10@cat1-stream1", @event.Data.FromUtf8());
             }
 
         }
@@ -69,11 +75,15 @@ namespace EventStore.Projections.Core.Tests.Services.handlers
             {
                 _handler = new CategorizeEventsByStreamPath("-", Console.WriteLine);
                 _handler.Initialize();
+                byte[] stateBytes;
+                byte[] sharedStateBytes;
                 _result = _handler.ProcessEvent(
                     "", CheckpointTag.FromPosition(0, 200, 150), null,
                     new ResolvedEvent(
                         "cat2-stream2", 20, "cat2-stream2", 20, true, new TFPos(200, 150), Guid.NewGuid(),
-                        "$>", true, "10@cat1-stream1", "{}"), out _state, out _sharedState, out _emittedEvents);
+                        "$>", true, "10@cat1-stream1", "{}"), out stateBytes, out sharedStateBytes, out _emittedEvents);
+                _state = stateBytes.FromUtf8();
+                _sharedState = sharedStateBytes.FromUtf8();
             }
 
             [Test]
@@ -96,7 +106,7 @@ namespace EventStore.Projections.Core.Tests.Services.handlers
                 var @event = _emittedEvents[0].Event;
                 Assert.AreEqual("$>", @event.EventType);
                 Assert.AreEqual("$ce-cat2", @event.StreamId);
-                Assert.AreEqual("10@cat1-stream1", @event.Data);
+                Assert.AreEqual("10@cat1-stream1", @event.Data.FromUtf8());
             }
 
         }

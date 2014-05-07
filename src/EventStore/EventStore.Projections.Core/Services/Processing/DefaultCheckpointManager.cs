@@ -46,8 +46,7 @@ namespace EventStore.Projections.Core.Services.Processing
             _zeroTag = positionTagger.MakeZeroCheckpointTag();
         }
 
-        protected override void BeginWriteCheckpoint(
-            CheckpointTag requestedCheckpointPosition, string requestedCheckpointState)
+        protected override void BeginWriteCheckpoint(CheckpointTag requestedCheckpointPosition, byte[] requestedCheckpointState)
         {
             _requestedCheckpointPosition = requestedCheckpointPosition;
             _coreProjectionCheckpointWriter.BeginWriteCheckpoint(
@@ -116,7 +115,7 @@ namespace EventStore.Projections.Core.Services.Processing
                     if (parsed.Version.ProjectionId != _projectionVersion.ProjectionId
                         || _projectionVersion.Epoch > parsed.Version.Version)
                     {
-                        var state = new PartitionState("", null, _zeroTag);
+                        var state = new PartitionState(_zeroTag);
                         loadCompleted(state);
                         return;
                     }
@@ -127,8 +126,7 @@ namespace EventStore.Projections.Core.Services.Processing
                         //TODO: skip event processing in case we know i has been already processed
                         if (loadedStateCheckpointTag < requestedStateCheckpointTag)
                         {
-                            var state = PartitionState.Deserialize(
-                                Helper.UTF8NoBom.GetString(@event.Data), loadedStateCheckpointTag);
+                            var state = PartitionState.Deserialize(@event.Data, loadedStateCheckpointTag);
                             loadCompleted(state);
                             return;
                         }
@@ -137,7 +135,7 @@ namespace EventStore.Projections.Core.Services.Processing
             }
             if (message.NextEventNumber == -1)
             {
-                var state = new PartitionState("", null, _zeroTag);
+                var state = new PartitionState(_zeroTag);
                 loadCompleted(state);
                 return;
             }

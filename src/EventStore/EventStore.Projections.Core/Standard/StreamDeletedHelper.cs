@@ -25,45 +25,6 @@ namespace EventStore.Projections.Core.Standard
         }
 
         public static bool IsStreamDeletedEvent(
-            string streamOrMetaStreamId, string eventType, string eventData, out string deletedPartitionStreamId)
-        {
-            if (string.IsNullOrEmpty(streamOrMetaStreamId))
-            {
-                deletedPartitionStreamId = null;
-                return false;
-            }
-            bool isMetaStream;
-            if (SystemStreams.IsMetastream(streamOrMetaStreamId))
-            {
-                isMetaStream = true;
-                deletedPartitionStreamId = streamOrMetaStreamId.Substring("$$".Length);
-            }
-            else
-            {
-                isMetaStream = false;
-                deletedPartitionStreamId = streamOrMetaStreamId;
-            }
-            var isStreamDeletedEvent = false;
-            if (isMetaStream)
-            {
-                if (eventType == SystemEventTypes.StreamMetadata)
-                {
-                    var metadata = StreamMetadata.FromJson(eventData);
-                    //NOTE: we do not ignore JSON deserialization exceptions here assuming that metadata stream events must be deserializable
-
-                    if (metadata.TruncateBefore == EventNumber.DeletedStream)
-                        isStreamDeletedEvent = true;
-                }
-            }
-            else
-            {
-                if (eventType == SystemEventTypes.StreamDeleted)
-                    isStreamDeletedEvent = true;
-            }
-            return isStreamDeletedEvent;
-        }
-
-        public static bool IsStreamDeletedEvent(
             string streamOrMetaStreamId, string eventType, byte[] eventData, out string deletedPartitionStreamId)
         {
             bool isMetaStream;

@@ -11,6 +11,7 @@ using EventStore.Core.Services.UserManagement;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messages.Persisted.Responses;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 
 namespace EventStore.Projections.Core.Services.Management
@@ -199,7 +200,7 @@ namespace EventStore.Projections.Core.Services.Management
                             Guid.ParseExact(commandBody.CorrelationId, "N"),
                             Guid.ParseExact(commandBody.Id, "N"),
                             commandBody.Partition,
-                            commandBody.State,
+                            commandBody.State.ToUtf8(),
                             commandBody.Position));
                     break;
                 }
@@ -211,7 +212,7 @@ namespace EventStore.Projections.Core.Services.Management
                             Guid.ParseExact(commandBody.CorrelationId, "N"),
                             Guid.ParseExact(commandBody.Id, "N"),
                             commandBody.Partition,
-                            commandBody.Result,
+                            commandBody.Result.ToUtf8(),
                             commandBody.Position));
                     break;
                 }

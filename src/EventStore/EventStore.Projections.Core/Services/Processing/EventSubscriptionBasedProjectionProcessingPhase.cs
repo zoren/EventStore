@@ -6,6 +6,7 @@ using EventStore.Core.Messaging;
 using EventStore.Core.Services.TimerService;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messaging;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -445,10 +446,20 @@ namespace EventStore.Projections.Core.Services.Processing
             }
             if (changed || eventsWereEmitted)
             {
-                var correlationId = message.Data.IsJson ? message.Data.Metadata.ParseCheckpointTagCorrelationId() : null;
+                var correlationId = message.Data.IsJson
+                    ? message.Data.Metadata.FromUtf8().ParseCheckpointTagCorrelationId()
+                    : null;
+
                 return new EventProcessedResult(
-                    partition, message.CheckpointTag, oldState, partitionState, oldSharedState, newSharedPartitionState,
-                    emittedEvents, message.Data.EventId, correlationId);
+                    partition,
+                    message.CheckpointTag,
+                    oldState,
+                    partitionState,
+                    oldSharedState,
+                    newSharedPartitionState,
+                    emittedEvents,
+                    message.Data.EventId,
+                    correlationId);
             }
 
             else return null;
@@ -509,7 +520,7 @@ namespace EventStore.Projections.Core.Services.Processing
                     }
                     else
                     {
-                        var state = new PartitionState("", null, _zeroCheckpointTag);
+                        var state = new PartitionState(_zeroCheckpointTag);
                         completed(state);
                     }
                 }
@@ -543,8 +554,7 @@ namespace EventStore.Projections.Core.Services.Processing
             }
         }
 
-        public void EmitEofResult(
-            string partition, string resultBody, CheckpointTag causedBy, Guid causedByGuid, string correlationId)
+        public void EmitEofResult(string partition, byte[] resultBody, CheckpointTag causedBy, Guid causedByGuid, string correlationId)
         {
             _resultWriter.WriteEofResult(
                 _currentSubscriptionId, partition, resultBody, causedBy, causedByGuid, correlationId);

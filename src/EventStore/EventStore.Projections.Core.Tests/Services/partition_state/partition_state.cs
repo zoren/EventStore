@@ -9,10 +9,16 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state
         [TestFixture]
         public class when_creating
         {
-            [Test, ExpectedException(typeof(ArgumentNullException))]
-            public void throws_argument_null_exception_if_state_is_null()
+            [Test]
+            public void does_not_throw_argument_null_exception_if_state_is_null()
             {
                 new PartitionState(null, "result", CheckpointTag.FromPosition(0, 100, 50));
+            }
+
+            [Test]
+            public void does_not_throw_argument_null_exception_if_result_is_null()
+            {
+                new PartitionState("state", null, CheckpointTag.FromPosition(0, 100, 50));
             }
 
             [Test, ExpectedException(typeof(ArgumentNullException))]
@@ -51,8 +57,8 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state
             public void null_deserialization()
             {
                 var deserialized = PartitionState.Deserialize(null, CheckpointTag.FromPosition(0, 100, 50));
-                Assert.AreEqual("", deserialized.State);
-                Assert.IsNull(deserialized.Result);
+                Assert.IsNull(deserialized.GetStateString());
+                Assert.IsNull(deserialized.GetResultString());
             }
 
             private void AssertCorrect(string state, string result = null)
@@ -61,8 +67,8 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state
                 var serialized = partitionState.Serialize();
                 var deserialized = PartitionState.Deserialize(serialized, CheckpointTag.FromPosition(0, 100, 50));
 
-                Assert.AreEqual(partitionState.State, deserialized.State);
-                Assert.AreEqual(partitionState.Result, deserialized.Result);
+                Assert.AreEqual(partitionState.GetStateString(), deserialized.GetStateString());
+                Assert.AreEqual(partitionState.GetResultString(), deserialized.GetResultString());
             }
         }
     }

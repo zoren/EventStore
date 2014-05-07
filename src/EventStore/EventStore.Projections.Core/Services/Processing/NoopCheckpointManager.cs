@@ -110,7 +110,7 @@ namespace EventStore.Projections.Core.Services.Processing
             if (_stopping)
                 throw new InvalidOperationException("Stopping");
 
-            if (partition == "" && newState.State == null) // ignore non-root partitions and non-changed states
+            if (partition == "" && newState.StateBytes == null) // ignore non-root partitions and non-changed states
                 throw new NotSupportedException("Internal check");
         }
 

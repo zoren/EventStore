@@ -3,6 +3,7 @@ using System.Linq;
 using EventStore.Core.Data;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_manager.multi_stream
@@ -60,7 +61,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
             Assert.AreEqual(
                 CheckpointTag.FromStreamPositions(0, new Dictionary<string, int> {{"a", 0}, {"b", 0}, {"c", 0}}),
                 _projection._checkpointLoadedMessages.Single().CheckpointTag);
-            Assert.AreEqual("{}", _projection._checkpointLoadedMessages.Single().CheckpointData);
+            Assert.AreEqual("{}", _projection._checkpointLoadedMessages.Single().CheckpointData.FromUtf8());
         }
 
         [Test]

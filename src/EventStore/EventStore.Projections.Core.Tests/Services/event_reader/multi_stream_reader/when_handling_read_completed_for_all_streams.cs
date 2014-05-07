@@ -8,6 +8,7 @@ using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Tests.Services.core_projection;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 
@@ -108,10 +109,10 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_r
             Assert.AreEqual("event_type1", second.Data.EventType);
             Assert.AreEqual(_firstEventId, first.Data.EventId);
             Assert.AreEqual(_thirdEventId, second.Data.EventId);
-            Assert.AreEqual(1, first.Data.Data[0]);
-            Assert.AreEqual(2, first.Data.Metadata[0]);
-            Assert.AreEqual(1, second.Data.Data[0]);
-            Assert.AreEqual(2, second.Data.Metadata[0]);
+            Assert.AreEqual(1, first.Data.Data.FromUtf8()[0]);
+            Assert.AreEqual(2, first.Data.Metadata.FromUtf8()[0]);
+            Assert.AreEqual(1, second.Data.Data.FromUtf8()[0]);
+            Assert.AreEqual(2, second.Data.Metadata.FromUtf8()[0]);
             Assert.AreEqual("a", first.Data.EventStreamId);
             Assert.AreEqual("b", second.Data.EventStreamId);
             Assert.AreEqual(50, first.Data.Position.PreparePosition);

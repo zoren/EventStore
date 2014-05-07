@@ -2,6 +2,7 @@ using System;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Tests.Services.projections_manager;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.v8
@@ -38,7 +39,7 @@ namespace EventStore.Projections.Core.Tests.Services.v8
         [Test, Category("v8")]
         public void transform_state_should_return_initialized_state()
         {
-            var result = _stateHandler.TransformStateToResult();
+            var result = _stateHandler.TransformStateToResult().FromUtf8();
             Assert.IsTrue(result.Contains("\"test\":\"1\""));
         }
     }

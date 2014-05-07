@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EventStore.Core.Bus;
 using EventStore.Projections.Core.Messages;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -55,26 +56,24 @@ namespace EventStore.Projections.Core.Services.Processing
         public void Handle(CoreProjectionManagementMessage.GetState message)
         {
             var state = _stateCache.TryGetPartitionState(message.Partition);
-            var stateString = state != null ? state.State : null;
             _publisher.Publish(
                 new CoreProjectionStatusMessage.StateReport(
                     message.CorrelationId,
                     message.CorrelationId,
                     message.Partition,
-                    state: stateString,
+                    state: state.StateBytes,
                     position: null));
         }
 
         public void Handle(CoreProjectionManagementMessage.GetResult message)
         {
             var state = _stateCache.TryGetPartitionState(message.Partition);
-            var resultString = state != null ? state.Result : null;
             _publisher.Publish(
                 new CoreProjectionStatusMessage.ResultReport(
                     message.CorrelationId,
                     message.CorrelationId,
                     message.Partition,
-                    result: resultString,
+                    result: state.ResultBytes,
                     position: null));
 
         }
@@ -127,7 +126,7 @@ namespace EventStore.Projections.Core.Services.Processing
                         Guid.NewGuid(),
                         "$Eof",
                         true,
-                        null,
+                        (byte[])null,
                         null,
                         phaseCheckpointTag,
                         null),

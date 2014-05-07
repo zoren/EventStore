@@ -1,17 +1,24 @@
 using System;
 using System.Collections.Generic;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
     public class EmittedDataEvent : EmittedEvent
     {
-        private readonly string _data;
+        private readonly byte[] _data;
         private readonly ExtraMetaData _metadata;
         private readonly bool _isJson;
 
         public EmittedDataEvent(
-            string streamId, Guid eventId,
-            string eventType, bool isJson, string data, ExtraMetaData metadata, CheckpointTag causedByTag, CheckpointTag expectedTag,
+            string streamId,
+            Guid eventId,
+            string eventType,
+            bool isJson,
+            byte[] data,
+            ExtraMetaData metadata,
+            CheckpointTag causedByTag,
+            CheckpointTag expectedTag,
             Action<int> onCommitted = null)
             : base(streamId, eventId, eventType, causedByTag, expectedTag, onCommitted)
         {
@@ -20,7 +27,21 @@ namespace EventStore.Projections.Core.Services.Processing
             _metadata = metadata;
         }
 
-        public override string Data
+        public EmittedDataEvent(
+            string streamId,
+            Guid eventId,
+            string eventType,
+            bool isJson,
+            string data,
+            ExtraMetaData metadata,
+            CheckpointTag causedByTag,
+            CheckpointTag expectedTag,
+            Action<int> onCommitted = null)
+            : this(streamId, eventId, eventType, isJson, data.ToUtf8(), metadata, causedByTag, expectedTag, onCommitted)
+        {
+        }
+
+        public override byte[] Data
         {
             get { return _data; }
         }

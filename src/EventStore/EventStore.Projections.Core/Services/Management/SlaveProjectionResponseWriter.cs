@@ -3,6 +3,7 @@ using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messages.ParallelQueryProcessingMessages;
 using EventStore.Projections.Core.Messages.Persisted.Commands;
 using EventStore.Projections.Core.Messages.Persisted.Responses.Slave;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Management
 {
@@ -49,7 +50,7 @@ namespace EventStore.Projections.Core.Services.Management
                 Partition = message.Partition,
                 CausedBy = message.CausedByGuid.ToString("N"),
                 Position = message.Position,
-                Result = message.Result,
+                Result = message.Result.FromUtf8(),
             };
             _writer.PublishResponse("$result", message.MasterProjectionId, command);
         }

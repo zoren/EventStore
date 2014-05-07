@@ -9,6 +9,7 @@ using EventStore.Core.Services.UserManagement;
 using EventStore.Projections.Core.Messages.ParallelQueryProcessingMessages;
 using EventStore.Projections.Core.Messages.Persisted.Responses.Slave;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 
 namespace EventStore.Projections.Core.Services.Management
@@ -149,7 +150,7 @@ namespace EventStore.Projections.Core.Services.Management
                             body.Partition,
                             Guid.ParseExact(body.CausedBy, "N"),
                             body.Position,
-                            body.Result));
+                            body.Result.ToUtf8()));
                     break;
                 }
                 default:

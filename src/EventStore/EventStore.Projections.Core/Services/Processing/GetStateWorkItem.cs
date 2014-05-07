@@ -1,6 +1,7 @@
 using System;
 using EventStore.Core.Bus;
 using EventStore.Projections.Core.Messages;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -32,7 +33,7 @@ namespace EventStore.Projections.Core.Services.Processing
                         _correlationId,
                         _projectionId,
                         _partition,
-                        state.State,
+                        state.StateBytes,
                         checkpointTag));
         }
     }

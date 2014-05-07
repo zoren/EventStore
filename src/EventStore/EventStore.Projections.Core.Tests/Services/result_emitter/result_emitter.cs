@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.result_emitter
@@ -62,7 +63,7 @@ namespace EventStore.Projections.Core.Tests.Services.result_emitter
 
             private void When()
             {
-                _emittedEvents = _re.ResultUpdated(_partition, _result, _resultAt);
+                _emittedEvents = _re.ResultUpdated(_partition, _result.ToUtf8(), _resultAt);
             }
 
             [Test]
@@ -74,14 +75,14 @@ namespace EventStore.Projections.Core.Tests.Services.result_emitter
                 var link = _emittedEvents[1].Event;
 
                 Assert.AreEqual("Result", @event.Event.EventType);
-                Assert.AreEqual(_result, @event.Event.Data);
+                Assert.AreEqual(_result, @event.Event.Data.FromUtf8());
                 Assert.AreEqual("$projections-projection-partition-result", @event.Event.StreamId);
                 Assert.AreEqual(_resultAt, @event.Event.CausedByTag);
                 Assert.IsNull(@event.Event.ExpectedTag);
 
                 Assert.AreEqual("$>", link.EventType);
                 ((EmittedLinkTo) link).SetTargetEventNumber(1);
-                Assert.AreEqual("1@$projections-projection-partition-result", link.Data);
+                Assert.AreEqual("1@$projections-projection-partition-result", link.Data.FromUtf8());
                 Assert.AreEqual("$projections-projection-result", link.StreamId);
                 Assert.AreEqual(_resultAt, link.CausedByTag);
                 Assert.IsNull(link.ExpectedTag);
@@ -138,7 +139,7 @@ namespace EventStore.Projections.Core.Tests.Services.result_emitter
 
                 Assert.AreEqual("$>", link.EventType);
                 ((EmittedLinkTo)link).SetTargetEventNumber(1);
-                Assert.AreEqual("1@$projections-projection-partition-result", link.Data);
+                Assert.AreEqual("1@$projections-projection-partition-result", link.Data.FromUtf8());
                 Assert.AreEqual("$projections-projection-result", link.StreamId);
                 Assert.AreEqual(_resultAt, link.CausedByTag);
                 Assert.IsNull(link.ExpectedTag);
@@ -179,7 +180,7 @@ namespace EventStore.Projections.Core.Tests.Services.result_emitter
 
             private void When()
             {
-                _emittedEvents = _re.ResultUpdated(_partition, _result, _resultAt);
+                _emittedEvents = _re.ResultUpdated(_partition, _result.ToUtf8(), _resultAt);
             }
 
             [Test]
@@ -190,7 +191,7 @@ namespace EventStore.Projections.Core.Tests.Services.result_emitter
                 var @event = _emittedEvents[0].Event;
 
                 Assert.AreEqual("Result", @event.EventType);
-                Assert.AreEqual(_result, @event.Data);
+                Assert.AreEqual(_result, @event.Data.FromUtf8());
                 Assert.AreEqual("$projections-projection-result", @event.StreamId);
                 Assert.AreEqual(_resultAt, @event.CausedByTag);
                 Assert.IsNull(@event.ExpectedTag);

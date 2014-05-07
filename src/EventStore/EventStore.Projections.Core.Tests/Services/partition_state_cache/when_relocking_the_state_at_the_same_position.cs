@@ -29,7 +29,7 @@ namespace EventStore.Projections.Core.Tests.Services.partition_state_cache
         public void the_state_can_be_retrieved()
         {
             var state = _cache.TryGetPartitionState("partition");
-            Assert.AreEqual("data", state.State);
+            Assert.AreEqual("data", state.GetStateString());
         }
 
     }

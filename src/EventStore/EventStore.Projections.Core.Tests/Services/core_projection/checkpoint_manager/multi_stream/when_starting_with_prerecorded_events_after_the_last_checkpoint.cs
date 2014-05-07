@@ -5,6 +5,7 @@ using System.Text;
 using EventStore.Core.Data;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_manager.multi_stream
@@ -66,7 +67,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
             Assert.AreEqual(
                 CheckpointTag.FromStreamPositions(0, new Dictionary<string, int> {{"a", 0}, {"b", 0}, {"c", 0}}),
                 _projection._checkpointLoadedMessages.Single().CheckpointTag);
-            Assert.AreEqual("{}", _projection._checkpointLoadedMessages.Single().CheckpointData);
+            Assert.AreEqual("{}", _projection._checkpointLoadedMessages.Single().CheckpointData.FromUtf8());
         }
 
         [Test]
@@ -103,17 +104,17 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
             var message2 = messages[1];
             var message3 = messages[2];
 
-            Assert.AreEqual(@"{""data"":""d""", message1.Data.Data);
-            Assert.AreEqual(@"{""data"":""a""", message2.Data.Data);
-            Assert.AreEqual(@"{""data"":""b""", message3.Data.Data);
+            Assert.AreEqual(@"{""data"":""d""", message1.Data.Data.FromUtf8());
+            Assert.AreEqual(@"{""data"":""a""", message2.Data.Data.FromUtf8());
+            Assert.AreEqual(@"{""data"":""b""", message3.Data.Data.FromUtf8());
 
-            Assert.AreEqual(@"dd", message1.Data.Metadata);
-            Assert.AreEqual(@"", message2.Data.Metadata);
-            Assert.AreEqual(@"bb", message3.Data.Metadata);
+            Assert.AreEqual(@"dd", message1.Data.Metadata.FromUtf8());
+            Assert.AreEqual(@"", message2.Data.Metadata.FromUtf8());
+            Assert.AreEqual(@"bb", message3.Data.Metadata.FromUtf8());
 
-            Assert.AreEqual("{$o:\"org\"}", message1.Data.PositionMetadata);
-            Assert.IsNull(message2.Data.PositionMetadata);
-            Assert.IsNull(message3.Data.PositionMetadata);
+            Assert.AreEqual("{$o:\"org\"}", message1.Data.PositionMetadata.FromUtf8());
+            Assert.IsNull(message2.Data.PositionMetadata.FromUtf8());
+            Assert.IsNull(message3.Data.PositionMetadata.FromUtf8());
 
             Assert.AreEqual("Event", message1.Data.EventType);
             Assert.AreEqual("Event", message2.Data.EventType);

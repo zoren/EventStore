@@ -8,6 +8,7 @@ using EventStore.Projections.Core.Messages.ParallelQueryProcessingMessages;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Tests.Services.core_projection;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.slave_projection
@@ -115,7 +116,7 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.slave_p
                 HandledMessages.OfType<PartitionProcessingResultOutput>().ToArray();
             Assert.AreEqual(1, results.Length);
             var result = results[0];
-            Assert.AreEqual("{\"data\":1}", result.Result);
+            Assert.AreEqual("{\"data\":1}", result.Result.FromUtf8());
         }
     }
 
@@ -200,8 +201,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.slave_p
             var results =
                 HandledMessages.OfType<PartitionProcessingResultOutput>().ToArray();
             Assert.AreEqual(3, results.Length);
-            Assert.AreEqual("{\"data\":1}", results[0].Result);
-            Assert.AreEqual("{\"data\":2}", results[1].Result);
+            Assert.AreEqual("{\"data\":1}", results[0].Result.FromUtf8());
+            Assert.AreEqual("{\"data\":2}", results[1].Result.FromUtf8());
             Assert.IsNull(results[2].Result);
         }
     }

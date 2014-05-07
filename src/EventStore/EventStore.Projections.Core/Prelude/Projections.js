@@ -99,14 +99,14 @@ var $projections = {
                 return "OK";
             },
 
-            get_state_partition: function (event, isJson, streamId, eventType, category, sequenceNumber, metadata, linkMetadata) {
-                return getStatePartition(event, streamId, eventType, category, sequenceNumber, metadata, linkMetadata);
+            get_state_partition: function (data, metadata, position_metadata, stream_metadata, isJson, streamId, eventType, category, sequenceNumber) {
+                return getStatePartition(data, streamId, eventType, category, sequenceNumber, metadata, position_metadata);
             },
 
-            transform_catalog_event: function (event, isJson, streamId, eventType, category, sequenceNumber, metadata, linkMetadata, partition, streamMetadataRaw) {
+            transform_catalog_event: function (data, metadata, position_metadata, stream_metadata, isJson, streamId, eventType, category, sequenceNumber, partition) {
                 if (!catalogEventTransformer)
                     throw "catalogEventTransformer is not set";
-                var eventEnvelope = new envelope(null, event, eventType, streamId, sequenceNumber, metadata, linkMetadata, partition, streamMetadataRaw);
+                var eventEnvelope = new envelope(null, data, eventType, streamId, sequenceNumber, metadata, position_metadata, partition, stream_metadata);
 
                 if (isJson) {
                     tryDeserializeBody(eventEnvelope);
@@ -117,8 +117,8 @@ var $projections = {
                 return result;
             },
 
-            process_event: function (event, isJson, streamId, eventType, category, sequenceNumber, metadata, linkMetadata, partition) {
-                processEvent(event, isJson, streamId, eventType, category, sequenceNumber, metadata, linkMetadata, partition);
+            process_event: function (data, metadata, position_metadata, stream_metadata, isJson, streamId, eventType, category, sequenceNumber, partition) {
+                processEvent(data, isJson, streamId, eventType, category, sequenceNumber, metadata, position_metadata, partition);
                 var stateJson;
                 var finalResult;
                 if (!sources.options.biState) {
@@ -132,7 +132,7 @@ var $projections = {
                 }
             },
 
-            process_deleted_notification: function (partition, isSoftDeleted) {
+            process_deleted_notification: function (data, metadata, position_metadata, stream_metadata, partition, isSoftDeleted) {
                 processDeletedNotification(partition, isSoftDeleted);
                 var stateJson;
                 if (!sources.options.biState) {
@@ -143,8 +143,8 @@ var $projections = {
                 }
             },
 
-            process_created_notification: function (event, isJson, streamId, eventType, category, sequenceNumber, metadata, linkMetadata, partition) {
-                processCreatedNotification(event, isJson, streamId, eventType, category, sequenceNumber, metadata, linkMetadata, partition);
+            process_created_notification: function (data, metadata, position_metadata, stream_metadata, isJson, streamId, eventType, category, sequenceNumber, partition) {
+                processCreatedNotification(data, isJson, streamId, eventType, category, sequenceNumber, metadata, position_metadata, partition);
                 var stateJson;
                 stateJson = JSON.stringify(projectionState);
                 return stateJson;

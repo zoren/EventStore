@@ -2,6 +2,7 @@
 using EventStore.Projections.Core.Messages.ParallelQueryProcessingMessages;
 using EventStore.Projections.Core.Messages.Persisted.Responses.Slave;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.slave_projection_response_writer
@@ -38,7 +39,7 @@ namespace EventStore.Projections.Core.Tests.Services.slave_projection_response_w
                     _partition,
                     _causedBy,
                     _position,
-                    _result));
+                    _result.ToUtf8()));
         }
 
         [Test]

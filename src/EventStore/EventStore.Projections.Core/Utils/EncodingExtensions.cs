@@ -6,12 +6,12 @@ namespace EventStore.Projections.Core.Utils
     {
         public static string FromUtf8(this byte[] self)
         {
-            return Helper.UTF8NoBom.GetString(self);
+            return self != null ? Helper.UTF8NoBom.GetString(self): null;
         }
 
         public static byte[] ToUtf8(this string self)
         {
-            return Helper.UTF8NoBom.GetBytes(self);
+            return self != null ? Helper.UTF8NoBom.GetBytes(self) : null;
         }
 
         public static string Apply(this string format, params object[] args)

@@ -6,7 +6,11 @@ namespace EventStore.Projections.Core.Services.Processing
     {
         //NOTE: subscriptionId should net be here.  Reconsider how to pass it to slave projection result writer
         void WriteEofResult(
-            Guid subscriptionId, string partition, string resultBody, CheckpointTag causedBy, Guid causedByGuid,
+            Guid subscriptionId,
+            string partition,
+            byte[] resultBody,
+            CheckpointTag causedBy,
+            Guid causedByGuid,
             string correlationId);
 
         void WritePartitionMeasured(Guid subscriptionId, string partition, int size);

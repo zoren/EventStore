@@ -1,4 +1,5 @@
 using System;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -15,12 +16,15 @@ namespace EventStore.Projections.Core.Services.Processing
             _namesBuilder = namesBuilder;
         }
 
-        public EmittedEventEnvelope[] ResultUpdated(string partition, string result, CheckpointTag at)
+        public EmittedEventEnvelope[] ResultUpdated(string partition, byte[] result, CheckpointTag at)
         {
             return CreateResultUpdatedEvents(partition, result, at);
         }
 
-        private EmittedEventEnvelope[] CreateResultUpdatedEvents(string partition, string projectionResult, CheckpointTag at)
+        private EmittedEventEnvelope[] CreateResultUpdatedEvents(
+            string partition,
+            byte[] projectionResult,
+            CheckpointTag at)
         {
             var streamId = _namesBuilder.MakePartitionResultStreamName(partition);
             var allResultsStreamId = _namesBuilder.GetResultStreamName();
@@ -30,11 +34,25 @@ namespace EventStore.Projections.Core.Services.Processing
                     new EmittedEventEnvelope(
                         projectionResult == null
                             ? new EmittedDataEvent(
-                                streamId, Guid.NewGuid(), "ResultRemoved", true, null, null, at, null)
+                                streamId,
+                                Guid.NewGuid(),
+                                "ResultRemoved",
+                                true,
+                                (byte[])null,
+                                null,
+                                at,
+                                null)
                             : new EmittedDataEvent(
-                                streamId, Guid.NewGuid(), "Result", true, projectionResult, null, at, null),
+                                streamId,
+                                Guid.NewGuid(),
+                                "Result",
+                                true,
+                                projectionResult,
+                                null,
+                                at,
+                                null),
                         _resultStreamMetadata);
-                
+
                 return new[] {result};
             }
             else
@@ -45,11 +63,26 @@ namespace EventStore.Projections.Core.Services.Processing
                     new EmittedEventEnvelope(
                         projectionResult == null
                             ? new EmittedDataEvent(
-                                streamId, Guid.NewGuid(), "ResultRemoved", true, null, null, at, null,
+                                streamId,
+                                Guid.NewGuid(),
+                                "ResultRemoved",
+                                true,
+                                (byte[])null,
+                                null,
+                                at,
+                                null,
                                 linkTo.SetTargetEventNumber)
                             : new EmittedDataEvent(
-                                streamId, Guid.NewGuid(), "Result", true, projectionResult, null, at, null,
-                                linkTo.SetTargetEventNumber), _resultStreamMetadata);
+                                streamId,
+                                Guid.NewGuid(),
+                                "Result",
+                                true,
+                                projectionResult,
+                                null,
+                                at,
+                                null,
+                                linkTo.SetTargetEventNumber),
+                        _resultStreamMetadata);
                 return new[] {result, linkToEnvelope};
             }
         }

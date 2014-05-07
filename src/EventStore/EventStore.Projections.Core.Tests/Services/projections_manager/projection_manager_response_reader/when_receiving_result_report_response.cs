@@ -4,6 +4,7 @@ using System.Linq;
 using EventStore.Common.Utils;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.projection_manager_response_reader
@@ -49,7 +50,7 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.project
             Assert.AreEqual(_projectionId, response.ProjectionId);
             Assert.AreEqual(_correlationId, response.CorrelationId);
             Assert.AreEqual(_partition, response.Partition);
-            Assert.AreEqual(_result, response.Result);
+            Assert.AreEqual(_result, response.Result.FromUtf8());
             Assert.AreEqual(_position, response.Position);
         }
     }

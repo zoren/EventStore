@@ -4,6 +4,7 @@ using EventStore.Core.Tests;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Management;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager
@@ -37,12 +38,12 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager
             _source = _stateHandler.GetSourceDefinition();
 
             if (_state != null)
-                _stateHandler.Load(_state);
+                _stateHandler.Load(_state.ToUtf8());
             else
                 _stateHandler.Initialize();
 
             if (_sharedState != null)
-                _stateHandler.LoadShared(_sharedState);
+                _stateHandler.LoadShared(_sharedState.ToUtf8());
             When();
         }
 

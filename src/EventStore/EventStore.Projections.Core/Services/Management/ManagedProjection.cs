@@ -317,7 +317,11 @@ namespace EventStore.Projections.Core.Services.Management
                     new CoreProjectionManagementMessage.GetState(Guid.NewGuid(), Id, message.Partition, _workerId),
                     m =>
                         message.Envelope.ReplyWith(
-                            new ProjectionManagementMessage.ProjectionState(_name, m.Partition, m.State, m.Position)));
+                            new ProjectionManagementMessage.ProjectionState(
+                                _name,
+                                m.Partition,
+                                m.State.FromUtf8(),
+                                m.Position)));
             }
             else
             {
@@ -336,7 +340,11 @@ namespace EventStore.Projections.Core.Services.Management
                     new CoreProjectionManagementMessage.GetResult(Guid.NewGuid(), Id, message.Partition, _workerId),
                     m =>
                         message.Envelope.ReplyWith(
-                            new ProjectionManagementMessage.ProjectionResult(_name, m.Partition, m.Result, m.Position)));
+                            new ProjectionManagementMessage.ProjectionResult(
+                                _name,
+                                m.Partition,
+                                m.Result.FromUtf8(),
+                                m.Position)));
             }
             else
             {

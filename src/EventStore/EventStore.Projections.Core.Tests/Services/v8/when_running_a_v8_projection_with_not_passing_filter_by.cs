@@ -2,6 +2,7 @@ using System;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Tests.Services.projections_manager;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.v8
@@ -35,7 +36,7 @@ namespace EventStore.Projections.Core.Tests.Services.v8
             var result = _stateHandler.TransformStateToResult();
 
             Assert.IsNotNull(result);
-            Assert.AreEqual(@"{""a"":""2""}", result);
+            Assert.AreEqual(@"{""a"":""2""}", result.FromUtf8());
         }
 
         [Test, Category("v8")]

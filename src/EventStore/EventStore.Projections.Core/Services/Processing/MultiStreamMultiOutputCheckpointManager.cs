@@ -7,6 +7,7 @@ using EventStore.Core.Data;
 using EventStore.Core.Helpers;
 using EventStore.Core.Services.UserManagement;
 using EventStore.Projections.Core.Messages;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -62,9 +63,15 @@ namespace EventStore.Projections.Core.Services.Processing
                 new[]
                 {
                     new EmittedDataEvent(
-                        orderStreamName, Guid.NewGuid(), "$>",
-                        false, resolvedEvent.PositionSequenceNumber + "@" + resolvedEvent.PositionStreamId, null,
-                        orderCheckpointTag, _lastOrderCheckpointTag, v => committed())
+                        orderStreamName,
+                        Guid.NewGuid(),
+                        "$>",
+                        false,
+                        (resolvedEvent.PositionSequenceNumber + "@" + resolvedEvent.PositionStreamId).ToUtf8(),
+                        null,
+                        orderCheckpointTag,
+                        _lastOrderCheckpointTag,
+                        v => committed())
                 });
             _lastOrderCheckpointTag = orderCheckpointTag;
         }

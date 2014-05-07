@@ -4,6 +4,7 @@ using EventStore.Core.Data;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messages.ParallelQueryProcessingMessages;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEvent;
 
@@ -67,7 +68,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.parallel_qu
                     "account-00",
                     Guid.Empty,
                     CheckpointTag.FromByStreamPosition(0, "", 0, "account-00", int.MaxValue, 10000),
-                    "{\"data\":1}"));
+                    "{\"data\":1}".ToUtf8()));
             _bus.Publish(
                 new PartitionProcessingResult(
                     _workerId,
@@ -76,7 +77,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.parallel_qu
                     "account-01",
                     Guid.Empty,
                     CheckpointTag.FromByStreamPosition(0, "", 1, "account-01", int.MaxValue, 10000),
-                    "{\"data\":2}"));
+                    "{\"data\":2}".ToUtf8()));
         }
 
         [Test]

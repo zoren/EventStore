@@ -4,6 +4,7 @@ using EventStore.Core.Data;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEvent;
 
 namespace EventStore.Web.Users
@@ -28,11 +29,11 @@ namespace EventStore.Web.Users
             builder.IncludeEvent("$UserCreated");
         }
 
-        public void Load(string state)
+        public void Load(byte[] state)
         {
         }
 
-        public void LoadShared(string state)
+        public void LoadShared(byte[] state)
         {
             throw new NotImplementedException();
         }
@@ -55,9 +56,7 @@ namespace EventStore.Web.Users
             throw new NotImplementedException();
         }
 
-        public bool ProcessEvent(
-            string partition, CheckpointTag eventPosition, string category, ResolvedEvent data, out string newState,
-            out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
+        public bool ProcessEvent(string partition, CheckpointTag eventPosition, string category, ResolvedEvent data, out byte[] newState, out byte[] newSharedState, out EmittedEventEnvelope[] emittedEvents)
         {
             newSharedState = null;
             if (!data.EventStreamId.StartsWith(UserStreamPrefix))
@@ -79,9 +78,17 @@ namespace EventStore.Web.Users
             {
                 new EmittedEventEnvelope(
                     new EmittedDataEvent(
-                        UsersStream, Guid.NewGuid(), UserEventType, false, loginName, null, eventPosition, null))
+                        UsersStream,
+                        Guid.NewGuid(),
+                        UserEventType,
+                        false,
+                        loginName.ToUtf8(),
+                        null,
+                        eventPosition,
+                        null))
             };
-            newState = "";
+
+            newState = null;
             return true;
         }
 
@@ -91,13 +98,13 @@ namespace EventStore.Web.Users
             return false;
         }
 
-        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+        public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out byte[] newState)
         {
             newState = null;
             return false;
         }
 
-        public string TransformStateToResult()
+        public byte[] TransformStateToResult()
         {
             throw new NotImplementedException();
         }

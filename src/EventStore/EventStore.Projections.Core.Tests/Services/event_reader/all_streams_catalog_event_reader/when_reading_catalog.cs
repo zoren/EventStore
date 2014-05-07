@@ -5,6 +5,7 @@ using EventStore.Core.Data;
 using EventStore.Core.Services.UserManagement;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Processing;
+using EventStore.Projections.Core.Utils;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.event_reader.all_streams_catalog_event_reader
@@ -78,11 +79,11 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.all_streams_ca
                 var fourth = receivedEvents[3];
 
                 Assert.AreEqual(true, first.Data.ResolvedLinkTo);
-                Assert.AreEqual("{Meta: 1}", first.Data.StreamMetadata);
+                Assert.AreEqual("{Meta: 1}", first.Data.StreamMetadata.FromUtf8());
                 Assert.AreEqual(true, second.Data.ResolvedLinkTo);
-                Assert.AreEqual("{Meta: 2}", second.Data.StreamMetadata);
+                Assert.AreEqual("{Meta: 2}", second.Data.StreamMetadata.FromUtf8());
                 Assert.AreEqual(true, third.Data.ResolvedLinkTo);
-                Assert.AreEqual("{Meta: 3}", third.Data.StreamMetadata);
+                Assert.AreEqual("{Meta: 3}", third.Data.StreamMetadata.FromUtf8());
                 Assert.AreEqual(true, fourth.Data.ResolvedLinkTo);
             }
 

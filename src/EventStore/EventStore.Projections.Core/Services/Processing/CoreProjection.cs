@@ -301,7 +301,10 @@ namespace EventStore.Projections.Core.Services.Processing
                 //TODO: handle errors
                 _coreProjectionCheckpointWriter.StartFrom(checkpointTag, message.CheckpointEventNumber);
                 if (_requiresRootPartition)
-                    _partitionStateCache.CacheAndLockPartitionState("", PartitionState.Deserialize(message.CheckpointData, checkpointTag), null);
+                    _partitionStateCache.CacheAndLockPartitionState(
+                        "",
+                        PartitionState.Deserialize(message.CheckpointData, checkpointTag),
+                        null);
                 BeginPhase(projectionProcessingPhase, checkpointTag);
                 GoToState(State.StateLoaded);
                 if (_startOnLoad)
@@ -506,7 +509,7 @@ namespace EventStore.Projections.Core.Services.Processing
             _checkpointReader.Initialize();
             _tickPending = false;
             if (_requiresRootPartition)
-                _partitionStateCache.CacheAndLockPartitionState("", new PartitionState("", null, CheckpointTag.Empty), null);
+                _partitionStateCache.CacheAndLockPartitionState("", new PartitionState(CheckpointTag.Empty), null);
             // NOTE: this is to workaround exception in GetState requests submitted by client
         }
 

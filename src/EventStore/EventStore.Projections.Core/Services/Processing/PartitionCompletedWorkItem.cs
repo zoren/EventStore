@@ -1,4 +1,5 @@
 using System;
+using EventStore.Projections.Core.Utils;
 
 namespace EventStore.Projections.Core.Services.Processing
 {
@@ -36,7 +37,7 @@ namespace EventStore.Projections.Core.Services.Processing
 
         protected override void WriteOutput()
         {
-            _projection.EmitEofResult(_partition, _state.Result, _checkpointTag, Guid.Empty, null);
+            _projection.EmitEofResult(_partition, _state.ResultBytes, _checkpointTag, Guid.Empty, null);
             //NOTE: write output is an ordered processing stage
             //      thus all the work items before have been already processed
             //      and as we are processing in the stream-by-stream mode

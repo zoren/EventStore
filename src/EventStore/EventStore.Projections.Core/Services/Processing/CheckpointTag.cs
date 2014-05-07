@@ -530,7 +530,7 @@ namespace EventStore.Projections.Core.Services.Processing
             return resultDictionary;
         }
 
-        public byte[] ToJsonBytes(ProjectionVersion projectionVersion, IEnumerable<KeyValuePair<string, JToken>> extraMetaData = null)
+        public byte[] ToJsonBytes(ProjectionVersion projectionVersion = default (ProjectionVersion), IEnumerable<KeyValuePair<string, JToken>> extraMetaData = null)
         {
             if (projectionVersion.ProjectionId == -1) throw new ArgumentException("projectionId is required", "projectionVersion");
 
