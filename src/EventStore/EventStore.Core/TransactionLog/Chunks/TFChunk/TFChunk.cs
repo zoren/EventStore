@@ -414,6 +414,7 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk
                         throw new HashValidationException();
                 }
             }
+            Log.Trace("Verified hash for TFChunk '{0}'...", _filename);
         }
 
         private ChunkHeader ReadHeader(Stream stream)
