@@ -110,9 +110,9 @@ namespace EventStore.Core.Tests.Helpers
             return eventPosition;
         }
 
-        protected void EnableReadAll()
+        protected void EnableReadAll(bool enable = true)
         {
-            _readAllEnabled = true;
+            _readAllEnabled = enable;
         }
 
         protected void NoStream(string streamId)

@@ -24,7 +24,7 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 
             protected override bool GivenHeadingReaderRunning()
             {
-                return true;
+                return false;
             }
 
             protected override void Given()
@@ -111,6 +111,38 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
             {
                 var fromZeroPosition = CheckpointTag.FromEventTypeIndexPositions(
                     0, new TFPos(0, -1), new Dictionary<string, int> {{"type1", -1}, {"type2", -1}});
+                yield return
+                    new ReaderSubscriptionManagement.Subscribe(
+                        _subscriptionId, fromZeroPosition, _readerStrategy, _readerSubscriptionOptions);
+            }
+        }
+
+        [TestFixture]
+        class when_index_checkpoint_at_eof : with_one_event_type_has_been_never_emitted
+        {
+            protected override void Given()
+            {
+                base.Given();
+                EnableReadAll(enable: false);
+            }
+
+            protected override void GivenInitialIndexState()
+            {
+                ExistingEvent("$et-type1", "$>", TFPosToMetadata(_tfPos1), "0@test-stream");
+                ExistingEvent("$et-type1", "$>", TFPosToMetadata(_tfPos2), "1@test-stream");
+                ExistingEvent("$et-type1", "$>", TFPosToMetadata(_tfPos3), "2@test-stream");
+
+                for (var i = 0; i < TailLength; i++)
+                    ExistingEvent("$et-type1", "$>", TFPosToMetadata(_tfPos[i]), (i + 3) + "@test-stream");
+
+                NoStream("$et-type2");
+                ExistingEvent("$et", "$Checkpoint", TFPosToMetadata(_tfPos[TailLength - 1]), TFPosToMetadata(_tfPos[TailLength - 1]));
+            }
+
+            protected override IEnumerable<WhenStep> When()
+            {
+                var fromZeroPosition = CheckpointTag.FromEventTypeIndexPositions(
+                    0, new TFPos(0, -1), new Dictionary<string, int> { { "type1", -1 }, { "type2", -1 } });
                 yield return
                     new ReaderSubscriptionManagement.Subscribe(
                         _subscriptionId, fromZeroPosition, _readerStrategy, _readerSubscriptionOptions);
