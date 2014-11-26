@@ -35,7 +35,10 @@ namespace EventStore.Core.Tests.Services.ElectionsService
                 TimeSpan.FromSeconds(10),
                 TimeSpan.FromSeconds(10),
                 TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(10), true, Opts.MaxMemtableSizeDefault);
+                TimeSpan.FromSeconds(10), 
+                true, 
+                Opts.MaxMemtableSizeDefault,
+                true);
 
             return vnode;
         }

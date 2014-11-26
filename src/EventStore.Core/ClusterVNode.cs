@@ -400,7 +400,8 @@ namespace EventStore.Core
                 // REPLICA REPLICATION
                 var replicaService = new ReplicaService(_mainQueue, db, epochManager, _workersHandler, authenticationProvider,
                                                     _nodeInfo, vNodeSettings.UseSsl, vNodeSettings.SslTargetHost, vNodeSettings.SslValidateServer,
-                                                    vNodeSettings.IntTcpHeartbeatTimeout, vNodeSettings.ExtTcpHeartbeatInterval);
+                                                    vNodeSettings.IntTcpHeartbeatTimeout, vNodeSettings.ExtTcpHeartbeatInterval,
+                                                    vNodeSettings.IsPromotable);
                 _mainBus.Subscribe<SystemMessage.StateChangeMessage>(replicaService);
                 _mainBus.Subscribe<ReplicationMessage.ReconnectToMaster>(replicaService);
                 _mainBus.Subscribe<ReplicationMessage.SubscribeToMaster>(replicaService);

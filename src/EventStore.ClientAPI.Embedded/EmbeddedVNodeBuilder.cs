@@ -85,6 +85,7 @@ namespace EventStore.ClientAPI.Embedded
 
         private ProjectionsMode _projectionsMode;
         private int _projectionsThreads;
+        private bool _isPromotable;
         // ReSharper restore FieldCanBeMadeReadOnly.Local
 
         private EmbeddedVNodeBuilder()
@@ -145,6 +146,7 @@ namespace EventStore.ClientAPI.Embedded
             _maxMemtableSize = Opts.MaxMemtableSizeDefault;
             _subsystems = new List<ISubsystem>();
             _clusterGossipPort = Opts.ClusterGossipPortDefault;
+            _isPromotable = true;
         }
 
         /// <summary>
@@ -213,10 +215,10 @@ namespace EventStore.ClientAPI.Embedded
             return this;
         }
 
-	/// <summary>
-	/// Returns a builder set to write database files to the specified path
-	/// </summary>
-	/// <param name="path">The path on disk in which to write the database files</param>
+    	/// <summary>
+    	/// Returns a builder set to write database files to the specified path
+	    /// </summary>
+	    /// <param name="path">The path on disk in which to write the database files</param>
         /// <returns>A <see cref="EmbeddedVNodeBuilder"/> with the options set</returns>
         public EmbeddedVNodeBuilder RunOnDisk(string path)
         {
@@ -485,6 +487,17 @@ namespace EventStore.ClientAPI.Embedded
         }
 
         /// <summary>
+        /// Returns a builder set to write database files to the specified path
+        /// </summary>
+        /// <returns>A <see cref="EmbeddedVNodeBuilder"/> with the options set</returns>
+        public EmbeddedVNodeBuilder NotPromotableWithinCluster()
+        {
+            _isPromotable = false;
+            return this;
+        }
+
+
+        /// <summary>
 	/// Sets the Server SSL Certificate to be loaded from a certificate store
 	/// </summary>
 	/// <param name="storeLocation">The location of the certificate store</param>
@@ -631,7 +644,8 @@ namespace EventStore.ClientAPI.Embedded
                 _extTcpHeartbeatTimeout,
                 _extTcpHeartbeatInterval,
                 !_skipVerifyDbHashes,
-                _maxMemtableSize);
+                _maxMemtableSize,
+                _isPromotable);
             var infoController = new InfoController(null);
             return new ClusterVNode(db, vNodeSettings, GetGossipSource(), infoController, _subsystems.ToArray());
         }

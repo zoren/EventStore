@@ -50,6 +50,7 @@ namespace EventStore.Core.Cluster.Settings
         public readonly TimeSpan IntTcpHeartbeatInterval;
         public readonly TimeSpan ExtTcpHeartbeatTimeout;
         public readonly TimeSpan ExtTcpHeartbeatInterval;
+        public readonly bool IsPromotable;
 
         public readonly bool VerifyDbHash;
         public readonly int MaxMemtableEntryCount;
@@ -92,8 +93,9 @@ namespace EventStore.Core.Cluster.Settings
                                     TimeSpan intTcpHeartbeatInterval,
                                     TimeSpan extTcpHeartbeatTimeout,
                                     TimeSpan extTcpHeartbeatInterval,
-				    bool verifyDbHash,
-				    int maxMemtableEntryCount)
+				                    bool verifyDbHash,
+				                    int maxMemtableEntryCount,
+                                    bool isPromotable)
         {
             Ensure.NotEmptyGuid(instanceId, "instanceId");
             Ensure.NotNull(internalTcpEndPoint, "internalTcpEndPoint");
@@ -160,6 +162,7 @@ namespace EventStore.Core.Cluster.Settings
 
             VerifyDbHash = verifyDbHash;
             MaxMemtableEntryCount = maxMemtableEntryCount;
+            IsPromotable = isPromotable;
         }
 
         public override string ToString()
