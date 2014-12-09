@@ -175,14 +175,13 @@ namespace EventStore.Core.Services.PersistentSubscription
 
         public IEnumerable<ResolvedEvent> GetNextNOrLessMessages(int count)
         {
+            //TODO GFY return array?
             for (var i = 0; i < count; i++)
             {
                 OutstandingMessage message;
-                if (_streamBuffer.TryDequeue(out message))
-                {
-                    MarkBeginProcessing(message);
-                    yield return message.ResolvedEvent;
-                }
+                if (!_streamBuffer.TryDequeue(out message)) yield break;
+                MarkBeginProcessing(message);
+                yield return message.ResolvedEvent;
             }
         }
 
