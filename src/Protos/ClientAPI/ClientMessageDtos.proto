@@ -1,5 +1,70 @@
 package EventStore.Client.Messages;
 
+/*
+ * So you want to write an event store client, this is a good place to start. This file 
+ * defines all of the message contracts between the client and the server over the TCP
+ * protocol.
+ *
+ * Before going into detail its probably best to talk about higher level things first
+ * for building a single node connected client then for a client that handles talking
+ * to a cluster of nodes. In both scenarios the protocol is relatively simple and the
+ * clustered version (HA) is an extension of the single node client.
+ *
+ * The protocol for talking to the event store is asynchronous unlike many similar 
+ * systems (it is also full duplex). Generally you send a message and eventually get
+ * a response or timeout (and retry, more on this later). All operations have associated
+ * with them a correlation id. The server will respond to your operation including the 
+ * correlation id that you atteched to the request. This allows for very large number 
+ * of requests to be done over a single TCP connection but makes writing some tools a
+ * little more difficult. The messages that are sent are also protobufs as opposed to 
+ * text which can make some client examples more difficult to deal with.
+ *
+ * The general workflow of sending a message to the event store is:
+ * Send (correlationid 3)
+ * Send (correlationid 5)
+ * Recv (correaltionid 5)
+ * Recv (correlationid 3)
+ *
+ * A client for event store could do this completely synchronously (eg Send 3/wait recv)
+ * but you probably don't want to do this. This also is where the standard comes from
+ * that event store connections tend to be long lived.
+ *
+ * Clustered Nodes 
+ *
+ * Dealing with a cluster is a bit more work than dealing with a single node, the reason
+ * for this is that the client needs to be aware of the cluster setup in many circumstances
+ * especially when dealing with WANs and things like consistency assurances need to be
+ * taken into consideration.
+ *
+ * Information about the current state of the cluster is handled through another protocol
+ * gossip over http. The uri /gossip gives the gossip information. A client probably wants
+ * to implement gossip with the nodes to get information about the cluster.
+ *
+ * Most clients in general want to prefer to be connected to the master node if they can
+ * be. This is because the master is assured to be up to date and the master is the node
+ * that handles coordination of writes. If you try to write to a node that is not the 
+ * current master that node will forward the request to the master node. Consider what 
+ * happens when you have a WAN
+ *
+ * Client->Slave (forwards)->Master (writes)->Slave (replication) acks->Master->Slave->Response
+ *
+ * thus you pay the latency penalty twice on the link between the master and the slave.
+ *
+ * On master its:
+ * Client->Master (writes)->Slave (replication) acks->Master->Response
+ *
+ * This can make a very big difference in perceived performance but requires that the client
+ * gossip in order to figure out who the master is, There is another case that you may really
+ * care about whether you are connected to a master vs a slave and this has to do with 
+ * consistency of reads.
+ *
+ *
+ *
+ *
+ */
+
+
+
 enum OperationResult
 {
 	Success = 0;
@@ -46,6 +111,9 @@ message ResolvedEvent {
 	required int64 prepare_position = 4;
 }
 
+/*
+ * Writes some events to a Stream.
+ */
 message WriteEvents {
 	required string event_stream_id = 1;
 	required int32 expected_version = 2;
@@ -53,6 +121,10 @@ message WriteEvents {
 	required bool require_master = 4;
 }
 
+
+/*
+ * Response to WriteEvents
+ */
 message WriteEventsCompleted {
 	required OperationResult result = 1;
 	optional string message = 2;
@@ -62,6 +134,10 @@ message WriteEventsCompleted {
 	optional int64 commit_position = 6;
 }
 
+
+/*
+ * Deletes a stream
+ */
 message DeleteStream {
 	required string event_stream_id = 1;
 	required int32 expected_version = 2;
@@ -69,6 +145,10 @@ message DeleteStream {
 	optional bool hard_delete = 4;
 }
 
+
+/*
+ * Response to deleting a stream
+ */
 message DeleteStreamCompleted {
 	required OperationResult result = 1;
 	optional string message = 2;
@@ -76,35 +156,65 @@ message DeleteStreamCompleted {
 	optional int64 commit_position = 4;
 }
 
+
+/*
+ * Starts a transaction for doing multiple asynchronous
+ * writes to the system.
+ */
 message TransactionStart {
 	required string event_stream_id = 1;
 	required int32 expected_version = 2;
 	required bool require_master = 3;
 }
 
+/*
+ * Response to a TrDo aansactionStart
+ *
+ * Note that the transaction id is not scoped to a connection etc
+ * as such it can be used between connections (or even multiple
+ * clients if you are feeling a bit insane!
+ */
 message TransactionStartCompleted {
 	required int64 transaction_id = 1;
 	required OperationResult result = 2;
 	optional string message = 3;
 }
 
+/*
+ * Do a write inside of a transaction.
+ * 
+ * Note: Its best if you can use expected version = any. 
+ * otherwise you can get an error on commit due to 
+ * expected version conflicts (transaction does not lock)
+ */
 message TransactionWrite {
 	required int64 transaction_id = 1;
 	repeated NewEvent events = 2;
 	required bool require_master = 3;
 }
 
+/*
+ * Response to a TransactionWrite
+ */
 message TransactionWriteCompleted {
 	required int64 transaction_id = 1;
 	required OperationResult result = 2;
 	optional string message = 3;
 }
 
+
+/*
+ * Commits a previously started transaction by its id
+ */
 message TransactionCommit {
 	required int64 transaction_id = 1;
 	required bool require_master = 2;
 }
 
+
+/*
+ * Response to a transaction commit.
+ */
 message TransactionCommitCompleted {
 	required int64 transaction_id = 1;
 	required OperationResult result = 2;
@@ -354,9 +464,20 @@ message NotHandled {
 	}
 }
 
+/*
+ * Starts a DB scavenge on the database.
+ */
 message ScavengeDatabase {
 }
 
+/*
+ * Response for a DB scavenge command
+ * success = scavenge started
+ * inprogress = already running (note non-idempotent as no id)
+ * fail = failed for some reason check error.
+ *
+ * Note: scavenging can take a long time.
+ */
 message ScavengeDatabaseCompleted {
 	
 	enum ScavengeResult {
