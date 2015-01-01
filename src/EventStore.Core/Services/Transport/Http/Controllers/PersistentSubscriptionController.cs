@@ -40,8 +40,15 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
 
         private void GetNextNMessages(HttpEntityManager http, UriTemplateMatch match)
         {
-            //called on GET of messages
-            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
+            var count = match.BoundVariables["subscription"];
+            int toRead;
+            if (count == null || !int.TryParse(count, out toRead))
+            {
+                http.ReplyStatus(HttpStatusCode.BadRequest, "Count is invalid.", exception => { });
+                return;
+            }
+            http.ReplyStatus(HttpStatusCode.BadRequest, "Count must be between 1 and 100.", exception => { });
+            return;
         }
 
 
