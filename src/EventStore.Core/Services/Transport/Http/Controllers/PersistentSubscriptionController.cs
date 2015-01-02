@@ -75,7 +75,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                         case ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.AccessDenied:
                             code = HttpStatusCode.Unauthorized;
                             break;
-                        case ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.Fail:
                         default:
                             code = HttpStatusCode.InternalServerError;
                             break;
