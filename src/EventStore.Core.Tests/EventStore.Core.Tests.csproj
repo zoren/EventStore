@@ -203,6 +203,7 @@
     <Compile Include="Http\ArgumentPassing\matching.cs" />
     <Compile Include="Http\BasicAuthentication\basic_authentication.cs" />
     <Compile Include="Http\HttpBehaviorSpecification.cs" />
+    <Compile Include="Http\PersistentSubscription\getting.cs" />
     <Compile Include="Http\PersistentSubscription\creating.cs" />
     <Compile Include="Http\PersistentSubscription\deleting.cs" />
     <Compile Include="Http\PersistentSubscription\statistics.cs" />
