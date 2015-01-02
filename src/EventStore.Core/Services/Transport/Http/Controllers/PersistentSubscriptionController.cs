@@ -49,7 +49,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
         }
 
-
         private void GetNextNMessages(HttpEntityManager http, UriTemplateMatch match)
         {
            //called on GET of messages
@@ -78,6 +77,10 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             }
             var envelope = new SendToHttpEnvelope(
                 _networkSendQueue, http,
+                //GFY TODO right now this is actually sending the message as its response.
+                //This is probably not wanted, probably we want to convert it into a DTO
+                //as there are other things we want to add to it such as the rel links
+                //that point back to the ACK/NAK links.
                 (args, message) => http.ResponseCodec.To(message),
                 (args, message) =>
                 {
