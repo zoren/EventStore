@@ -38,6 +38,18 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             Register(service, "/subscriptions/{stream}/{subscription}/messages?count={count}", HttpMethod.Get, GetNextNMessages, Codec.NoCodecs, DefaultCodecs);
             RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/ack?id={messageid}", HttpMethod.Post, AckMessage);
             RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/nack?id={messageid}", HttpMethod.Post, NackMessage);
+            RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/ack?ids={messageids}", HttpMethod.Post, AckMessages);
+            RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/nack?ids={messageids}", HttpMethod.Post, NackMessages);
+        }
+
+        private void NackMessages(HttpEntityManager http, UriTemplateMatch match)
+        {
+            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
+        }
+
+        private void AckMessages(HttpEntityManager http, UriTemplateMatch match)
+        {
+            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
         }
 
         private void AckMessage(HttpEntityManager http, UriTemplateMatch match)
