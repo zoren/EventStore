@@ -52,7 +52,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
 
         private void GetNextNMessages(HttpEntityManager http, UriTemplateMatch match)
         {
-            //called on GET of messages
+           //called on GET of messages
            //trial implementation 
             if (_httpForwarder.ForwardRequest(http))
                 return;
