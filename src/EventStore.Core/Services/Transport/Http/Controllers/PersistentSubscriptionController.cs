@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EventStore.Common.Log;
+using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
@@ -34,14 +35,84 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             Register(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Post, PostSubscription, DefaultCodecs, DefaultCodecs);
             RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Delete, DeleteSubscription);
             RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/replayParked", HttpMethod.Post, ReplayParkedMessages);
-            Register(service, "/subscriptions/{stream}/{subscription}/messages?c={count}", HttpMethod.Get, GetNextNMessages, Codec.NoCodecs, DefaultCodecs);
+            Register(service, "/subscriptions/{stream}/{subscription}/messages?count={count}", HttpMethod.Get, GetNextNMessages, Codec.NoCodecs, DefaultCodecs);
+            RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/ack?id={messageid}", HttpMethod.Post, AckMessage);
+            RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/nack?id={messageid}", HttpMethod.Post, NackMessage);
+        }
+
+        private void AckMessage(HttpEntityManager http, UriTemplateMatch match)
+        {
+            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
+        }
+        private void NackMessage(HttpEntityManager http, UriTemplateMatch match)
+        {
+            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
         }
 
 
         private void GetNextNMessages(HttpEntityManager http, UriTemplateMatch match)
         {
             //called on GET of messages
-            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
+           //trial implementation 
+            if (_httpForwarder.ForwardRequest(http))
+                return;
+            var envelope = new SendToHttpEnvelope(
+                _networkSendQueue, http,
+                (args, message) => http.ResponseCodec.To(message),
+                (args, message) =>
+                {
+                    int code;
+                    var m = message as ClientMessage.ReadNextNPersistentMessagesCompleted;
+                    if (m == null) throw new Exception("unexpected message " + message);
+                    switch (m.Result)
+                    {
+                        case ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.Success:
+                            code = HttpStatusCode.OK;
+                            break;
+                        case ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.DoesNotExist:
+                            code = HttpStatusCode.NotFound;
+                            break;
+                        case ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.AccessDenied:
+                            code = HttpStatusCode.Unauthorized;
+                            break;
+                        case ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.Fail:
+                        default:
+                            code = HttpStatusCode.InternalServerError;
+                            break;
+                    }
+
+                    return new ResponseConfiguration(code, http.ResponseCodec.ContentType,
+                        http.ResponseCodec.Encoding);
+                });
+            var groupname = match.BoundVariables["subscription"];
+            var stream = match.BoundVariables["stream"];
+            var count = 1; //default
+            if (match.QueryParameters.HasKeys() &&
+                match.QueryParameters.AllKeys.Contains("count")
+                )
+            {
+                var toParse = match.QueryParameters["count"];
+                if (!int.TryParse(toParse, out count) ||
+                    count > 100 ||
+                    count < 1)
+                {
+                    SendBadRequest(
+                        http,
+                        string.Format(
+                            "Message count must be an integer between 1 and 100 'count' ='{0}'", 
+                            toParse));
+                    return;
+                }
+            }
+            var cmd = new ClientMessage.ReadNextNPersistentMessages(
+                                             Guid.NewGuid(),
+                                             Guid.NewGuid(),
+                                             envelope, 
+                                             stream, 
+                                             groupname,
+                                             count,
+                                             http.User);
+            Publish(cmd);
         }
 
 
