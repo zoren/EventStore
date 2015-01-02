@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using EventStore.Common.Log;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
@@ -35,20 +36,76 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Delete, DeleteSubscription);
             RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/replayParked", HttpMethod.Post, ReplayParkedMessages);
             Register(service, "/subscriptions/{stream}/{subscription}/messages?count={count}", HttpMethod.Get, GetNextNMessages, Codec.NoCodecs, DefaultCodecs);
-            RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/ack?id={messageid}", HttpMethod.Post, AckMessage);
-            RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/nack?id={messageid}", HttpMethod.Post, NackMessage);
+            RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/messages/{messageid}/ack", HttpMethod.Post, AckMessage);
+            RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/messages/{messageid}/nack", HttpMethod.Post, NackMessage);
             RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/ack?ids={messageids}", HttpMethod.Post, AckMessages);
             RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/nack?ids={messageids}", HttpMethod.Post, NackMessages);
         }
 
-        private void NackMessages(HttpEntityManager http, UriTemplateMatch match)
-        {
-            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
-        }
-
         private void AckMessages(HttpEntityManager http, UriTemplateMatch match)
         {
-            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
+            //GFY
+            //There is a slight issue here in that the ack takes a subscription id not a subscription/group.
+            //Two options 
+            //1) duplicate logic for generating a subscription id its just :: between them
+            //private static string BuildSubscriptionGroupKey(string stream, string groupName)
+            //{
+            //    return stream + "::" + groupName;
+            //}
+            //2) make them take stream/subscription
+            //I lean towards 1 at this point.
+            var envelope = new NoopEnvelope();
+            var groupname = match.BoundVariables["subscription"];
+            var stream = match.BoundVariables["stream"];
+            var messageId = match.BoundVariables["messageId"];
+            var id =Guid.NewGuid();
+            if (!Guid.TryParse(messageId, out id))
+            {
+                http.ReplyStatus(HttpStatusCode.BadRequest, "messageid should be a properly formed guid", exception => { });
+                return;
+            }
+            var cmd = new ClientMessage.PersistentSubscriptionAckEvents(
+                                             Guid.NewGuid(),
+                                             Guid.NewGuid(),
+                                             envelope,
+                                             BuildSubscriptionGroupKey(groupname, stream),
+                                             new[] {id}, 
+                                             http.User);
+            Publish(cmd);
+            //ACK/NACK dont have responses!
+            http.ReplyStatus(HttpStatusCode.Accepted, "", exception => { });
+        }
+
+        private void NackMessages(HttpEntityManager http, UriTemplateMatch match)
+        {
+            var envelope = new NoopEnvelope();
+            var groupname = match.BoundVariables["subscription"];
+            var stream = match.BoundVariables["stream"];
+            var messageId = match.BoundVariables["messageId"];
+            var id = Guid.NewGuid();
+            if (!Guid.TryParse(messageId, out id))
+            {
+                http.ReplyStatus(HttpStatusCode.BadRequest, "messageid should be a properly formed guid", exception => { });
+                return;
+            }
+            var cmd = new ClientMessage.PersistentSubscriptionNackEvents(
+                                             Guid.NewGuid(),
+                                             Guid.NewGuid(),
+                                             envelope,
+                                             BuildSubscriptionGroupKey(groupname, stream),
+                                             "Naked from http",
+                                             ClientMessage.PersistentSubscriptionNackEvents.NakAction.Unknown, //TODO more nak actions?
+                                             new[] { id },
+                                             http.User);
+            Publish(cmd);
+            //ACK/NACK dont have responses!
+            http.ReplyStatus(HttpStatusCode.Accepted, "", exception => { });
+        }
+
+
+        private static string BuildSubscriptionGroupKey(string stream, string groupName)
+        {
+            return stream + "::" + groupName;
         }
 
         private void AckMessage(HttpEntityManager http, UriTemplateMatch match)
