@@ -56,33 +56,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
            //trial implementation 
             if (_httpForwarder.ForwardRequest(http))
                 return;
-            var envelope = new SendToHttpEnvelope(
-                _networkSendQueue, http,
-                (args, message) => http.ResponseCodec.To(message),
-                (args, message) =>
-                {
-                    int code;
-                    var m = message as ClientMessage.ReadNextNPersistentMessagesCompleted;
-                    if (m == null) throw new Exception("unexpected message " + message);
-                    switch (m.Result)
-                    {
-                        case ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.Success:
-                            code = HttpStatusCode.OK;
-                            break;
-                        case ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.DoesNotExist:
-                            code = HttpStatusCode.NotFound;
-                            break;
-                        case ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.AccessDenied:
-                            code = HttpStatusCode.Unauthorized;
-                            break;
-                        default:
-                            code = HttpStatusCode.InternalServerError;
-                            break;
-                    }
-
-                    return new ResponseConfiguration(code, http.ResponseCodec.ContentType,
-                        http.ResponseCodec.Encoding);
-                });
             var groupname = match.BoundVariables["subscription"];
             var stream = match.BoundVariables["stream"];
             var count = 1; //default
@@ -103,6 +76,37 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                     return;
                 }
             }
+            var envelope = new SendToHttpEnvelope(
+                _networkSendQueue, http,
+                (args, message) => http.ResponseCodec.To(message),
+                (args, message) =>
+                {
+                    int code;
+                    var m = message as ClientMessage.ReadNextNPersistentMessagesCompleted;
+                    if (m == null) throw new Exception("unexpected message " + message);
+                    switch (m.Result)
+                    {
+                        case
+                            ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.Success:
+                            code = HttpStatusCode.OK;
+                            break;
+                        case
+                            ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.DoesNotExist:
+                            code = HttpStatusCode.NotFound;
+                            break;
+                        case
+                            ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.AccessDenied:
+                            code = HttpStatusCode.Unauthorized;
+                            break;
+                        default:
+                            code = HttpStatusCode.InternalServerError;
+                            break;
+                    }
+
+                    return new ResponseConfiguration(code, http.ResponseCodec.ContentType,
+                        http.ResponseCodec.Encoding);
+                });
+
             var cmd = new ClientMessage.ReadNextNPersistentMessages(
                                              Guid.NewGuid(),
                                              Guid.NewGuid(),
