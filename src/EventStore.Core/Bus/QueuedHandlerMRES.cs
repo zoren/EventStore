@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Threading;
 using EventStore.Common.Log;
 using EventStore.Common.Utils;
@@ -97,7 +98,7 @@ namespace EventStore.Core.Bus
                         _starving = true;
 
                         _queueStats.EnterIdle();
-                        _msgAddEvent.Wait(100);
+                        _msgAddEvent.Wait(70);
                         _msgAddEvent.Reset();
 
                         _starving = false;

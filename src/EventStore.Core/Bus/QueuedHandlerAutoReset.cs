@@ -97,7 +97,7 @@ namespace EventStore.Core.Bus
                     {
                         _queueStats.EnterIdle();
                         _starving = true;
-                        _msgAddEvent.WaitOne(100);
+                        _msgAddEvent.WaitOne(70);
                         _starving = false;
                     }
                     else
