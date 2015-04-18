@@ -19,8 +19,8 @@ namespace EventStore.Core.Tests.Http.PersistentSubscription
         protected List<object> Events;
         protected string SubscriptionPath;
         protected string GroupName;
-        
-        
+
+
 
         protected override void Given()
         {
@@ -37,15 +37,17 @@ namespace EventStore.Core.Tests.Http.PersistentSubscription
                          Events,
                          _admin);
             Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
             GroupName = Guid.NewGuid().ToString();
-            SubscriptionPath = string.Format("/subscriptions/{0}/{1}",TestStream.Substring(8),GroupName);
-            response = MakeJsonPut( SubscriptionPath,
+            SubscriptionPath = string.Format("/subscriptions/{0}/{1}", TestStream.Substring(9), GroupName);
+            response = MakeJsonPut(SubscriptionPath,
                 new
                 {
                     ResolveLinkTos = true
                 },
                 _admin);
             Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
         }
 
         protected override void When()
@@ -68,21 +70,22 @@ namespace EventStore.Core.Tests.Http.PersistentSubscription
         [Test]
         public void returns_0_messages()
         {
-           
+
             //todo: implement test
             //not proven to pass or fail yet
-             Assert.Inconclusive("Not Implemented");
+            Assert.Inconclusive("Not Implemented");
         }
     }
 
-    class when_getting_messages_from_a_subscription_with_n_messags_return_n_messages : with_subscription_having_events
+    class when_getting_messages_from_a_subscription_with_n_messages : with_subscription_having_events
     {
         private JObject _response;
         protected override void When()
         {
+            //TODO: build out test cases around # requested and # availble
             _response = GetJson<JObject>(
-                                SubscriptionPath + "/messages?count=" + 4 ,
-                                ContentType.Any, //todo CLC sort out allowed content typees
+                                SubscriptionPath + "/messages?count=" + Events.Count + 1,
+                                ContentType.Any, //todo CLC sort out allowed content types
                                 _admin);
         }
 
@@ -90,7 +93,7 @@ namespace EventStore.Core.Tests.Http.PersistentSubscription
         public void returns_n_messages()
         {
             var count = ((JArray)_response["events"]).Count;
-            Assert.AreEqual(Events.Count, count,"Expected {0} events, received {1}", Events.Count, count);
+            Assert.AreEqual(Events.Count, count, "Expected {0} events, received {1}", Events.Count, count);
         }
     }
 

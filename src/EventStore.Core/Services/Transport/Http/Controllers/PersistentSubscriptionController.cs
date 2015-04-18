@@ -16,7 +16,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
     {
         private readonly IHttpForwarder _httpForwarder;
         private readonly IPublisher _networkSendQueue;
-        private static readonly ICodec[] DefaultCodecs = {Codec.Json, Codec.Xml};
+        private static readonly ICodec[] DefaultCodecs = { Codec.Json, Codec.Xml };
         private static readonly ILogger Log = LogManager.GetLoggerFor<PersistentSubscriptionController>();
 
         public PersistentSubscriptionController(IHttpForwarder httpForwarder, IPublisher publisher, IPublisher networkSendQueue)
@@ -58,7 +58,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             var groupname = match.BoundVariables["subscription"];
             var stream = match.BoundVariables["stream"];
             var messageId = match.BoundVariables["messageId"];
-            var id =Guid.NewGuid();
+            var id = Guid.NewGuid();
             if (!Guid.TryParse(messageId, out id))
             {
                 http.ReplyStatus(HttpStatusCode.BadRequest, "messageid should be a properly formed guid", exception => { });
@@ -69,7 +69,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                                              Guid.NewGuid(),
                                              envelope,
                                              BuildSubscriptionGroupKey(groupname, stream),
-                                             new[] {id}, 
+                                             new[] { id },
                                              http.User);
             Publish(cmd);
             //ACK/NACK dont have responses!
@@ -119,8 +119,8 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
 
         private void GetNextNMessages(HttpEntityManager http, UriTemplateMatch match)
         {
-           //called on GET of messages
-           //trial implementation 
+            //called on GET of messages
+            //trial implementation 
             if (_httpForwarder.ForwardRequest(http))
                 return;
             var groupname = match.BoundVariables["subscription"];
@@ -138,7 +138,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                     SendBadRequest(
                         http,
                         string.Format(
-                            "Message count must be an integer between 1 and 100 'count' ='{0}'", 
+                            "Message count must be an integer between 1 and 100 'count' ='{0}'",
                             toParse));
                     return;
                 }
@@ -181,8 +181,8 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             var cmd = new ClientMessage.ReadNextNPersistentMessages(
                                              Guid.NewGuid(),
                                              Guid.NewGuid(),
-                                             envelope, 
-                                             stream, 
+                                             envelope,
+                                             stream,
                                              groupname,
                                              count,
                                              http.User);
@@ -236,11 +236,11 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             var envelope = new SendToHttpEnvelope(
                 _networkSendQueue, http,
                 (args, message) => http.ResponseCodec.To(message),
-                (args,message) =>
+                (args, message) =>
                 {
                     int code;
                     var m = message as ClientMessage.CreatePersistentSubscriptionCompleted;
-                    if(m==null) throw new Exception("unexpected message " + message);
+                    if (m == null) throw new Exception("unexpected message " + message);
                     switch (m.Result)
                     {
                         case ClientMessage.CreatePersistentSubscriptionCompleted.CreatePersistentSubscriptionResult.Success:
@@ -263,25 +263,47 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             http.ReadTextRequestAsync(
                 (o, s) =>
                 {
-                    var data = http.RequestCodec.From<SubscriptionConfigData>(s);
+                    // var data = http.RequestCodec.From<SubscriptionConfigData>(s);
+
+                    // build default for now talk to GFY about intelegent defaults to use for merge with user
+                    // requested setting as the codec builder is returning all 0||false||null values 
+                    // which are incorrect
+
+                    //TODO CLC check for null config data here and perform merge of defaults with user specified settings data
+                     var   data = new SubscriptionConfigData
+                        {
+                            ResolveLinktos = true,
+                            StartFrom = 0,
+                            MessageTimeoutMilliseconds = 0,
+                            ExtraStatistics = true,
+                            MaxRetryCount = 10,
+                            BufferSize = 500,
+                            LiveBufferSize = 500,
+                            ReadBatchSize = 20,
+                            PreferRoundRobin = true,
+                            CheckPointAfterMilliseconds = 1000,
+                            MinCheckPointCount = 10,
+                            MaxCheckPointCount = 500
+                        };
+                    
                     //TODO competing validate data?
-                    var message = new ClientMessage.CreatePersistentSubscription(Guid.NewGuid(), 
+                    var message = new ClientMessage.CreatePersistentSubscription(Guid.NewGuid(),
                         Guid.NewGuid(),
-                        envelope, 
-                        stream, 
-                        groupname, 
-                        data == null || data.ResolveLinktos, 
-                        data == null ? 0 : data.StartFrom, 
-                        data == null ? 0 : data.MessageTimeoutMilliseconds, 
-                        data == null || data.ExtraStatistics,
-                        data == null ? 10 : data.MaxRetryCount,
-                        data == null ? 500 : data.BufferSize,
-                        data == null ? 500 : data.LiveBufferSize,
-                        data == null ? 20 : data.ReadBatchSize,
-                        data == null || data.PreferRoundRobin, 
-                        data == null ? 1000 : data.CheckPointAfterMilliseconds,
-                        data == null ? 10 : data.MinCheckPointCount,
-                        data == null ? 500 : data.MaxCheckPointCount,
+                        envelope,
+                        stream,
+                        groupname,
+                        data.ResolveLinktos,
+                        data.StartFrom,
+                        data.MessageTimeoutMilliseconds,
+                        data.ExtraStatistics,
+                        data.MaxRetryCount,
+                        data.BufferSize,
+                        data.LiveBufferSize,
+                        data.ReadBatchSize,
+                        data.PreferRoundRobin,
+                        data.CheckPointAfterMilliseconds,
+                        data.MinCheckPointCount,
+                        data.MaxCheckPointCount,
                         http.User,
                         "",
                         "");
@@ -386,7 +408,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                 });
             var groupname = match.BoundVariables["subscription"];
             var stream = match.BoundVariables["stream"];
-            var cmd = new ClientMessage.DeletePersistentSubscription(Guid.NewGuid(), Guid.NewGuid(),envelope, stream, groupname, http.User);
+            var cmd = new ClientMessage.DeletePersistentSubscription(Guid.NewGuid(), Guid.NewGuid(), envelope, stream, groupname, http.User);
             Publish(cmd);
         }
 
@@ -504,7 +526,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                     {
                         info.Connections.Add(new ConnectionInfo
                         {
-                            Username = connection.Username, 
+                            Username = connection.Username,
                             From = connection.From,
                             AverageItemsPerSecond = connection.AverageItemsPerSecond,
                             CountSinceLastMeasurement = connection.CountSinceLastMeasurement,
