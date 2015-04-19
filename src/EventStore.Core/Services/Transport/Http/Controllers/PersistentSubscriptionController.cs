@@ -47,16 +47,74 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
 
         private void AckMessages(HttpEntityManager http, UriTemplateMatch match)
         {
-            //GFY
-            //There is a slight issue here in that the ack takes a subscription id not a subscription/group.
-            //Two options 
-            //1) duplicate logic for generating a subscription id its just :: between them
-            //private static string BuildSubscriptionGroupKey(string stream, string groupName)
-            //{
-            //    return stream + "::" + groupName;
-            //}
-            //2) make them take stream/subscription
-            //I lean towards 1 at this point.
+            var envelope = new NoopEnvelope();
+            var groupname = match.BoundVariables["subscription"];
+            var stream = match.BoundVariables["stream"];
+            var messageIds = match.BoundVariables["messageIds"];
+            var ids = new List<Guid>();
+            foreach (var messageId in messageIds.Split(new [] {','}))
+            {
+                Guid id;
+                if (!Guid.TryParse(messageId, out id))
+                {
+                    http.ReplyStatus(HttpStatusCode.BadRequest, "messageid should be a properly formed guid", exception => { });
+                    return;
+                }
+                ids.Add(id);
+            }
+           
+            var cmd = new ClientMessage.PersistentSubscriptionAckEvents(
+                                             Guid.NewGuid(),
+                                             Guid.NewGuid(),
+                                             envelope,
+                                             BuildSubscriptionGroupKey(groupname, stream),
+                                             ids.ToArray(),
+                                             http.User);
+            Publish(cmd);
+            //TODO CLC how to check for fail here??
+            //ACK/NACK dont have responses!
+            http.ReplyStatus(HttpStatusCode.Accepted, "", exception => { });
+        }
+
+        private void NackMessages(HttpEntityManager http, UriTemplateMatch match)
+        {
+            var envelope = new NoopEnvelope();
+            var groupname = match.BoundVariables["subscription"];
+            var stream = match.BoundVariables["stream"];
+            var messageIds = match.BoundVariables["messageIds"];
+            var ids = new List<Guid>();
+            foreach (var messageId in messageIds.Split(new[] { ',' }))
+            {
+                Guid id;
+                if (!Guid.TryParse(messageId, out id))
+                {
+                    http.ReplyStatus(HttpStatusCode.BadRequest, "messageid should be a properly formed guid", exception => { });
+                    return;
+                }
+                ids.Add(id);
+            }
+            var cmd = new ClientMessage.PersistentSubscriptionNackEvents(
+                                             Guid.NewGuid(),
+                                             Guid.NewGuid(),
+                                             envelope,
+                                             BuildSubscriptionGroupKey(groupname, stream),
+                                             "Naked from http",
+                                             ClientMessage.PersistentSubscriptionNackEvents.NakAction.Unknown, //TODO more nak actions?
+                                             ids.ToArray(),
+                                             http.User);
+            Publish(cmd);
+            //ACK/NACK dont have responses!
+            http.ReplyStatus(HttpStatusCode.Accepted, "", exception => { });
+        }
+
+
+        private static string BuildSubscriptionGroupKey(string stream, string groupName)
+        {
+            return stream + "::" + groupName;
+        }
+
+        private void AckMessage(HttpEntityManager http, UriTemplateMatch match)
+        { 
             var envelope = new NoopEnvelope();
             var groupname = match.BoundVariables["subscription"];
             var stream = match.BoundVariables["stream"];
@@ -78,8 +136,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             //ACK/NACK dont have responses!
             http.ReplyStatus(HttpStatusCode.Accepted, "", exception => { });
         }
-
-        private void NackMessages(HttpEntityManager http, UriTemplateMatch match)
+        private void NackMessage(HttpEntityManager http, UriTemplateMatch match)
         {
             var envelope = new NoopEnvelope();
             var groupname = match.BoundVariables["subscription"];
@@ -103,21 +160,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             Publish(cmd);
             //ACK/NACK dont have responses!
             http.ReplyStatus(HttpStatusCode.Accepted, "", exception => { });
-        }
-
-
-        private static string BuildSubscriptionGroupKey(string stream, string groupName)
-        {
-            return stream + "::" + groupName;
-        }
-
-        private void AckMessage(HttpEntityManager http, UriTemplateMatch match)
-        {
-            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
-        }
-        private void NackMessage(HttpEntityManager http, UriTemplateMatch match)
-        {
-            http.ReplyStatus(HttpStatusCode.ServiceUnavailable, "This service has not been implemented yet.", exception => { });
         }
 
         private void GetNextNMessages(HttpEntityManager http, UriTemplateMatch match)
