@@ -269,7 +269,14 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                     var data = http.RequestCodec.From<SubscriptionConfigData>(s) ??
                                SubscriptionConfigData.Default;
                     if (!(data.BufferSize > data.ReadBatchSize))
-                        throw new ArgumentException("Buffer size must be larger than read batch size!");
+                    {
+                        SendBadRequest(
+                               http,
+                               string.Format(
+                                   "BufferSize{0} must be larger than ReadBatchSize{1}",
+                                   data.BufferSize,data.ReadBatchSize));
+                                return;
+                    }
                     //TODO competing validate data?
                     var message = new ClientMessage.CreatePersistentSubscription(Guid.NewGuid(),
                         Guid.NewGuid(),
