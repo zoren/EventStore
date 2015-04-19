@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using EventStore.Common.Log;
+using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Transport.Http;
 using EventStore.Transport.Http.Codecs;
 using EventStore.Transport.Http.EntityManagement;
+using Newtonsoft.Json;
 
 namespace EventStore.Core.Services.Transport.Http.Controllers
 {
@@ -263,29 +266,10 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             http.ReadTextRequestAsync(
                 (o, s) =>
                 {
-                    // var data = http.RequestCodec.From<SubscriptionConfigData>(s);
-
-                    // build default for now talk to GFY about intelegent defaults to use for merge with user
-                    // requested setting as the codec builder is returning all 0||false||null values 
-                    // which are incorrect
-
-                    //TODO CLC check for null config data here and perform merge of defaults with user specified settings data
-                     var   data = new SubscriptionConfigData
-                        {
-                            ResolveLinktos = true,
-                            StartFrom = 0,
-                            MessageTimeoutMilliseconds = 0,
-                            ExtraStatistics = true,
-                            MaxRetryCount = 10,
-                            BufferSize = 500,
-                            LiveBufferSize = 500,
-                            ReadBatchSize = 20,
-                            PreferRoundRobin = true,
-                            CheckPointAfterMilliseconds = 1000,
-                            MinCheckPointCount = 10,
-                            MaxCheckPointCount = 500
-                        };
-                    
+                    var data = http.RequestCodec.From<SubscriptionConfigData>(s) ??
+                               SubscriptionConfigData.Default;
+                    if (!(data.BufferSize > data.ReadBatchSize))
+                        throw new ArgumentException("Buffer size must be larger than read batch size!");
                     //TODO competing validate data?
                     var message = new ClientMessage.CreatePersistentSubscription(Guid.NewGuid(),
                         Guid.NewGuid(),
@@ -348,25 +332,28 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             http.ReadTextRequestAsync(
                 (o, s) =>
                 {
-                    var data = http.RequestCodec.From<SubscriptionConfigData>(s);
+                    var data = http.RequestCodec.From<SubscriptionConfigData>(s) ?? 
+                                SubscriptionConfigData.Default;
+                    if (!(data.BufferSize > data.ReadBatchSize))
+                        throw new ArgumentException("Buffer size must be larger than read batch size!");
                     //TODO competing validate data?
                     var message = new ClientMessage.UpdatePersistentSubscription(Guid.NewGuid(),
                         Guid.NewGuid(),
                         envelope,
                         stream,
                         groupname,
-                        data == null || data.ResolveLinktos,
-                        data == null ? 0 : data.StartFrom,
-                        data == null ? 0 : data.MessageTimeoutMilliseconds,
-                        data == null || data.ExtraStatistics,
-                        data == null ? 10 : data.MaxRetryCount,
-                        data == null ? 500 : data.BufferSize,
-                        data == null ? 500 : data.LiveBufferSize,
-                        data == null ? 20 : data.ReadBatchSize,
-                        data == null || data.PreferRoundRobin,
-                        data == null ? 1000 : data.CheckPointAfterMilliseconds,
-                        data == null ? 10 : data.MinCheckPointCount,
-                        data == null ? 500 : data.MaxCheckPointCount,
+                        data.ResolveLinktos,
+                        data.StartFrom,
+                        data.MessageTimeoutMilliseconds,
+                        data.ExtraStatistics,
+                        data.MaxRetryCount,
+                        data.BufferSize,
+                        data.LiveBufferSize,
+                        data.ReadBatchSize,
+                        data.PreferRoundRobin,
+                        data.CheckPointAfterMilliseconds,
+                        data.MinCheckPointCount,
+                        data.MaxCheckPointCount,
                         http.User,
                         "",
                         "");
@@ -571,6 +558,31 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
         }
         private class SubscriptionConfigData
         {
+            public static readonly SubscriptionConfigData Default =
+                new SubscriptionConfigData
+                {
+                    ResolveLinktos = true,
+                    StartFrom = 0,
+                    MessageTimeoutMilliseconds = 0,
+                    ExtraStatistics = true,
+                    MaxRetryCount = 10,
+                    BufferSize = 500,
+                    LiveBufferSize = 500,
+                    ReadBatchSize = 20,
+                    PreferRoundRobin = true,
+                    CheckPointAfterMilliseconds = 1000,
+                    MinCheckPointCount = 10,
+                    MaxCheckPointCount = 500
+                };
+
+
+            public SubscriptionConfigData()
+            {
+                //it is not valid for these to be set to 0
+                BufferSize = 500;
+                LiveBufferSize = 500;
+                ReadBatchSize = 20;
+            }
             public bool ResolveLinktos { get; set; }
             public int StartFrom { get; set; }
             public int MessageTimeoutMilliseconds { get; set; }
