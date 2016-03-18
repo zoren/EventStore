@@ -332,7 +332,7 @@ namespace EventStore.Core.Tests.Http.Streams
                 //TODO GFY I really wish we were targeting 4.5 only so I could use Uri.EscapeDataString
                 //given the choice between this and a dependency on system.web well yeah. When we have 4.5
                 //only lets use Uri
-                Assert.AreEqual(MakeUrl("/streams/" + StreamName.Replace("@", "%40") + "/0"), foo["uri"].ToString());
+                Assert.AreEqual(MakeUrl("/streams/" + StreamName.Replace("@", "%2540") + "/0"), foo["uri"].ToString());
             }
 
             [Test]
@@ -340,7 +340,7 @@ namespace EventStore.Core.Tests.Http.Streams
             {
                 var foo = _entries[1]["links"][1];
                 Assert.AreEqual("alternate", foo["relation"].ToString());
-                Assert.AreEqual(MakeUrl("/streams/" + StreamName.Replace("@", "%40") + "/0"), foo["uri"].ToString());
+                Assert.AreEqual(MakeUrl("/streams/" + StreamName.Replace("@", "%2540") + "/0"), foo["uri"].ToString());
             }
 
             [Test]
@@ -348,7 +348,7 @@ namespace EventStore.Core.Tests.Http.Streams
             {
                 var foo = _entries[0]["links"][0];
                 Assert.AreEqual("edit", foo["relation"].ToString());
-                Assert.AreEqual(MakeUrl("/streams/" + StreamName.Replace("@", "%40") + "/1"), foo["uri"].ToString());
+                Assert.AreEqual(MakeUrl("/streams/" + StreamName.Replace("@", "%2540") + "/1"), foo["uri"].ToString());
             }
 
             [Test]
@@ -356,7 +356,7 @@ namespace EventStore.Core.Tests.Http.Streams
             {
                 var foo = _entries[0]["links"][1];
                 Assert.AreEqual("alternate", foo["relation"].ToString());
-                Assert.AreEqual(MakeUrl("/streams/" + StreamName.Replace("@", "%40") + "/1"), foo["uri"].ToString());
+                Assert.AreEqual(MakeUrl("/streams/" + StreamName.Replace("@", "%2540") + "/1"), foo["uri"].ToString());
             }
         }
 
